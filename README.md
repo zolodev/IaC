@@ -4,7 +4,7 @@ This repo is to manage and automate my servers using Ansible.
 # Pre-requisite
 In Windows `WSL` we need to export the variable `ANSIBLE_CONFIG`:
 ```sh
-export ANSIBLE_CONFIG=/mnt/c/Users/zolodev/projects/IoC/ansible.cfg
+export ANSIBLE_CONFIG=/mnt/c/Users/Zolo/projects/IoC/ansible.cfg
 ```
 
 ´main.yml´ is the main playbook.

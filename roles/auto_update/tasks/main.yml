@@ -35,7 +35,7 @@
       APT::Periodic::Unattended-Upgrade "1";
 
 # Schedule Cron Job: Uses the cron module to schedule the unattended-upgrade command to run at 02:00 .
-- name: Schedule unattended-upgrade to run at 2 AM daily
+- name: Schedule unattended-upgrade to run at 02:00 daily
   cron:
     name: "unattended-upgrade"
     minute: "0"

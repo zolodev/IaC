@@ -1,0 +1,7 @@
+---
+# tasks file for base_role
+- name: Install packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ packages }}"

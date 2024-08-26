@@ -1,0 +1,44 @@
+---
+# tasks file for auto_update
+- name: Install unattended-upgrades and update-notifier-common
+  apt:
+    name:
+      - unattended-upgrades
+      - update-notifier-common
+    state: present
+    update_cache: yes
+
+- name: Enable unattended-upgrades
+  command: dpkg-reconfigure -plow unattended-upgrades
+  args:
+    creates: /etc/apt/apt.conf.d/20auto-upgrades
+
+- name: Configure unattended-upgrades
+  copy:
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    content: |
+      Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}";
+        "${distro_id}:${distro_codename}-security";
+      };
+
+# Frequency Breakdown
+# Daily: The value “1” indicates that the task will be performed every day.
+# Weekly: If you set the value to “7”, the task would be performed once a week.
+# Monthly: If you set the value to “30”, the task would be performed once a month
+
+- name: Set update frequency
+  copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+
+# Schedule Cron Job: Uses the cron module to schedule the unattended-upgrade command to run at 02:00 .
+- name: Schedule unattended-upgrade to run at 2 AM daily
+  cron:
+    name: "unattended-upgrade"
+    minute: "0"
+    hour: "2"
+    job: "/usr/bin/unattended-upgrade"
+    user: root

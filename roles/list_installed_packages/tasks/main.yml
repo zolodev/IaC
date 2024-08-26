@@ -1,0 +1,26 @@
+---
+# tasks file for list_installed_packages
+- name: Copy the script to the target machine
+  copy:
+    src: "template/list_installed_packages.sh"
+    dest: /tmp/list_installed_packages.sh
+    mode: "0755"
+
+- name: Execute the script to list installed packages by user
+  command: /tmp/list_installed_packages.sh
+  register: package_list
+
+- name: Save the output to a file
+  copy:
+    content: "{{ package_list.stdout }}"
+    dest: /tmp/installed_packages_by_user.txt
+
+- name: Fetch the file to the local machine
+  fetch:
+    src: /tmp/installed_packages_by_user.txt
+    dest: "installed_packages_by_user.txt"
+    flat: yes
+
+- name: Display the list of installed packages by user
+  debug:
+    msg: "{{ package_list.stdout_lines }}"

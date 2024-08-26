@@ -1,0 +1,8 @@
+# Main file
+- import_playbook: ./playbooks/apt.yml # Always run apt update && apt upgrade
+
+# Run after apt update && apt upgrade
+- hosts: "ubuntu"
+  roles:
+    # - list_installed_packages
+    - auto_update

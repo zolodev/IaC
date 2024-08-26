@@ -1,0 +1,13 @@
+- name: Update and Upgrade APT Packages
+  hosts: "ubuntu"
+  become: "yes"
+  tasks:
+    - name: Update the APT package index
+      apt:
+        update_cache: "yes"
+
+    - name: Upgrade all APT packages
+      apt:
+        upgrade: "yes"
+        autoclean: "yes"
+        autoremove: "yes"

@@ -6,4 +6,4 @@
   roles:
     - list_installed_packages
     - auto_update
-    - base_packages
+    # - role: base_packages

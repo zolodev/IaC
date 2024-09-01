@@ -1,0 +1,7 @@
+---
+# vars file for base_role
+
+# schedule time 14:30 daily
+daily_time:
+  hour: "14"
+  minutes: "30"

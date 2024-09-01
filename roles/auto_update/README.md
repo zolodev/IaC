@@ -11,7 +11,17 @@ No pre-requisites is required.
 Role Variables
 --------------
 
-One should export the time for when the auto_update task should run.
+## Time
+The configuration file have a randomize 60m by default.
+This is to avoid that schedule tasks will run at the same time.
+
+### Default daily time values
+```yml
+time:
+  hour: "14"     # schedule time 02:00
+  minutes: "30"
+```
+
 
 Dependencies
 ------------
@@ -23,9 +33,21 @@ Example Playbook
 
 How to use the role:
 
+Shorthand:
+```yml
     - hosts: servers
       roles:
-         - { role: auto_update }
+         - auto_update
+```
+Full:
+```yml
+    - hosts: servers
+      roles:
+         - role: auto_update
+           daily_time:
+            hour: "14"     # schedule time 14:30
+            minutes: "30"
+```
 
 License
 -------

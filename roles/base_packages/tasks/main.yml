@@ -4,4 +4,4 @@
   apt:
     name: "{{ item }}"
     state: present
-  loop: "{{ packages }}"
+  loop: "{{ package_list }}"

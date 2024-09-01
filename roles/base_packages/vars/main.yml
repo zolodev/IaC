@@ -1,2 +1,26 @@
 ---
 # vars file for base_role
+package_list:
+  - git
+  - curl
+  - tree
+  - bat
+  - htop
+  - btop
+  - vim
+  - ripgrep
+  - tmux
+  - screenfetch
+  - nmap
+  - dnsutils
+  - net-tools
+
+# package_list:
+#   - name: vim
+#     state: present
+#   - name: git
+#     state: present
+#   - name: curl
+#     state: present
+#   - name: htop
+#     state: present

@@ -1,6 +1,6 @@
 - name: Update and Upgrade APT Packages
   hosts: "ubuntu"
-  become: "yes"
+  become: true
   tasks:
     - name: Update the APT package index
       apt:

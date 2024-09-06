@@ -1,6 +1,8 @@
 ---
 # vars file for base_role
 base_package_list:
+  - python3
+  - python3-pip
   - git
   - curl
   - tree

@@ -1,4 +1,3 @@
----
 # - name: Update and Upgrade APT Packages
 hosts: "ubuntu"
 become: true

@@ -1,15 +1,15 @@
 ---
-- name: Update and Upgrade APT Packages
-  hosts: "ubuntu"
-  become: true
-  tasks:
-    # tasks file for base_role
-    - name: Install packages
-      apt:
-        name: "{{ item }}"
-        state: present
-      loop: "{{ base_package_list }}"
+# - name: Update and Upgrade APT Packages
+hosts: "ubuntu"
+become: true
+tasks:
+  # tasks file for base_role
+  - name: Install packages
+    apt:
+      name: "{{ item }}"
+      state: present
+    loop: "{{ base_package_list }}"
 
-    - name: add a hush file
-      ansible.builtin.command:
-        cmd: touch .hushlogin
+  - name: add a hush file
+    ansible.builtin.command:
+      cmd: touch .hushlogin

@@ -1,0 +1,5 @@
+---
+- name: Ensure .hushlogin file exists only if it doesn't already
+  file:
+    path: "~/.hushlogin"
+    state: touch

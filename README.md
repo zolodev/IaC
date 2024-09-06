@@ -17,3 +17,7 @@ Or run individual `playbooks`
 ```sh
 ansible-playbook ./playbooks/apt.yml -i inv.ini
 ```
+To scaffold a new role use the following command:
+```sh
+ansible-galaxy init my_role
+```

@@ -1,4 +1,5 @@
 # Main file
+- import_playbook: ./playbooks/prep_ansible_host.yml # Always prep ansible host
 - import_playbook: ./playbooks/apt.yml # Always run apt update && apt upgrade
 
 # Run after apt update && apt upgrade
@@ -6,4 +7,5 @@
   roles:
     - auto_update
     - base_packages
+    - silent_motd
     - list_installed_packages

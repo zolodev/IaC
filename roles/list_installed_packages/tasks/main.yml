@@ -8,19 +8,27 @@
 
 - name: Execute the script to list installed packages by user
   command: /tmp/list_installed_packages.sh
-  register: package_list
+  register: list_installed_packages_script
+
+- name: Gather date and time facts
+  setup:
+    filter: ansible_date_time
+
+- name: Generate a unique ID
+  command: uuidgen
+  register: unique_id
 
 - name: Save the output to a file
   copy:
-    content: "{{ package_list.stdout }}"
-    dest: /tmp/installed_packages_by_user.txt
+    content: "{{ list_installed_packages_script.stdout }}"
+    dest: /tmp/installed_packages_by_user_{{ ansible_date_time.date }}.txt
 
 - name: Fetch the file to the local machine
   fetch:
-    src: /tmp/installed_packages_by_user.txt
-    dest: "installed_packages_by_user.txt"
+    src: /tmp/installed_packages_by_user_{{ ansible_date_time.date }}.txt
+    dest: "installed_packages_on_{{ inventory_hostname }}_{{ ansible_date_time.date }}_{{ unique_id.stdout }}.txt"
     flat: yes
 
 - name: Display the list of installed packages by user
   debug:
-    msg: "{{ package_list.stdout_lines }}"
+    msg: "{{ list_installed_packages_script.stdout_lines }}"

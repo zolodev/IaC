@@ -1,4 +1,0 @@
-# Main file
-- hosts: "ubuntu"
-  roles:
-    - list_installed_packages

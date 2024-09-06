@@ -4,6 +4,6 @@
 # Run after apt update && apt upgrade
 - hosts: "ubuntu"
   roles:
-    - list_installed_packages
     - auto_update
-    # - role: base_packages
+    - base_packages
+    - list_installed_packages

@@ -1,9 +1,12 @@
 # Main file
-- import_playbook: ./playbooks/prep_ansible_host.yml # Always prep ansible host
-- import_playbook: ./playbooks/apt.yml # Always run apt update && apt upgrade
 
-# Run after apt update && apt upgrade
-- hosts: "ubuntu"
+# Run independent playbooks
+- import_playbook: ./playbooks/prep_ansible_host.yml
+- import_playbook: ./playbooks/apt.yml
+
+- name: Run roles
+  hosts: "ubuntu"
+  become: true
   roles:
     - auto_update
     - base_packages

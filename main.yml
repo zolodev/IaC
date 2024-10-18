@@ -9,6 +9,6 @@
   become: true
   roles:
     - auto_update
-    - base_packages
-    - silent_motd
-    - list_installed_packages
+    # - base_packages
+    # - silent_motd
+    # - list_installed_packages

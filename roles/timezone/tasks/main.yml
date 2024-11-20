@@ -1,0 +1,8 @@
+---
+# tasks file for timezone
+# timezone/tasks/main.yml
+
+- name: Set timezone to Europe/Stockholm
+  ansible.builtin.command:
+    cmd: timedatectl set-timezone Europe/Stockholm
+  become: true

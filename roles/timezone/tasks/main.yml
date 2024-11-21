@@ -1,8 +1,55 @@
----
-# tasks file for timezone
 # timezone/tasks/main.yml
 
 - name: Set timezone to Europe/Stockholm
   ansible.builtin.command:
     cmd: timedatectl set-timezone Europe/Stockholm
+  become: true
+
+- name: Ensure locales package is installed
+  ansible.builtin.apt:
+    name: locales
+    state: present
+  become: true
+
+- name: Generate en_US.UTF-8 locale
+  ansible.builtin.command:
+    cmd: locale-gen en_US.UTF-8
+  become: true
+
+- name: Reconfigure locales
+  ansible.builtin.command:
+    cmd: dpkg-reconfigure locales
+    creates: /etc/locale.gen
+  become: true
+
+- name: Update locale settings
+  ansible.builtin.copy:
+    dest: /etc/default/locale
+    content: |
+      LANG=en_US.UTF-8
+      LANGUAGE=en_US:en
+      LC_ALL=en_US.UTF-8
+  become: true
+
+- name: Ensure /etc/locale.gen is configured
+  ansible.builtin.lineinfile:
+    path: /etc/locale.gen
+    regexp: "^en_US.UTF-8 UTF-8"
+    line: "en_US.UTF-8 UTF-8"
+    state: present
+  become: true
+
+- name: Regenerate locales
+  ansible.builtin.command:
+    cmd: locale-gen
+  become: true
+
+- name: Reboot to apply locale settings
+  ansible.builtin.reboot:
+    msg: "Rebooting to apply locale settings"
+    connect_timeout: 5
+    reboot_timeout: 600
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+    test_command: whoami
   become: true

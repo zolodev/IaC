@@ -8,8 +8,8 @@
   hosts: "ubuntu"
   become: true
   roles:
-    - auto_update
     - base_packages
+    - auto_update
     - timezone
     # - silent_motd
     # - list_installed_packages

@@ -8,6 +8,7 @@
   hosts: "ubuntu"
   become: true
   roles:
+    - dotfiles
     - base_packages
     - auto_update
     - timezone      # Will reboot the server

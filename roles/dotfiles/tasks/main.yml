@@ -1,0 +1,25 @@
+---
+- name: Install Git
+  apt:
+    name: git
+    state: present
+  become: true
+
+- name: Clone the dotfiles repository
+  git:
+    repo: 'https://github.com/zolodev/dotfiles.git'
+    dest: /home/{{ specific_user }}/dotfiles
+    version: main
+  become: true
+  become_user: "{{ specific_user }}"
+
+- name: Run the setup script
+  shell: /home/{{ specific_user }}/dotfiles/setup.sh
+  become: true
+  become_user: "{{ specific_user }}"
+  register: setup_output
+  changed_when: setup_output.rc == 0
+  timeout: 120  # Set a timeout of 300 seconds (5 minutes)
+
+
+

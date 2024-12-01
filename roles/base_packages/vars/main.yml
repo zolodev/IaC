@@ -17,3 +17,4 @@ base_package_list:
   - dnsutils
   - net-tools
   - uuid-runtime
+  - rsync

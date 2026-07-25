@@ -18,7 +18,7 @@ On the first run `run.sh` will automatically:
 The only thing you need to do manually is create `prod.ini` with your real hosts:
 
 ```bash
-cp inventory/hosts.example.yml prod.ini
+cp inventory/hosts.example.ini prod.ini
 # Edit prod.ini — fill in real IPs and hostnames
 ./run.sh homelab
 ```

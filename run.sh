@@ -2,7 +2,7 @@
 # run.sh — run the right playbook with local inventory
 #
 # prod.ini lives locally on zh and is gitignored (*.ini).
-# Copy inventory/hosts.example.yml as a template and adapt.
+# Copy inventory/hosts.example.ini as a template and adapt.
 #
 # Usage:
 #   ./run.sh                  # run setup-homelab (default)
@@ -65,7 +65,7 @@ EOF
     echo ""
     echo "  ┌──────────────────────────────────────────────────────────────┐"
     echo "  │  Next: fill in your hosts in prod.ini                        │"
-    echo "  │    cp inventory/hosts.example.yml prod.ini                   │"
+    echo "  │    cp inventory/hosts.example.ini prod.ini                   │"
     echo "  │    # edit prod.ini with real IPs and hostnames               │"
     echo "  └──────────────────────────────────────────────────────────────┘"
     echo ""
@@ -79,8 +79,8 @@ fi
 
 # ── Local inventory with real IPs — never committed to git ───────────────────
 if [ ! -f "$PWD/prod.ini" ]; then
-    echo "ERROR: prod.ini not found — create it from inventory/hosts.example.yml"
-    echo "  cp inventory/hosts.example.yml prod.ini"
+    echo "ERROR: prod.ini not found — create it from inventory/hosts.example.ini"
+    echo "  cp inventory/hosts.example.ini prod.ini"
     echo "  # fill in real IPs and hostnames"
     exit 1
 fi

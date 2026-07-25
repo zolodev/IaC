@@ -1,5 +1,6 @@
 # .gitignore
 *.ini
+!inventory/hosts.example.ini
 *.retry
 collections/
 *.log

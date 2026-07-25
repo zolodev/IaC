@@ -1,7 +1,14 @@
 ---
-# tasks file for base_role
-- name: Install packages
+- name: Install base packages
   apt:
     name: "{{ item }}"
     state: present
   loop: "{{ base_package_list }}"
+
+- name: Configure passwordless sudo for ansible user
+  lineinfile:
+    path: /etc/sudoers.d/{{ specific_user }}
+    line: "{{ specific_user }} ALL=(ALL) NOPASSWD: ALL"
+    create: yes
+    mode: "0440"
+    validate: "visudo -cf %s"

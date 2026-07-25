@@ -15,18 +15,24 @@ On the first run `run.sh` will automatically:
 - Write `group_vars/vault.yml` (gitignored)
 - Offer to encrypt it with ansible-vault and save `.vault_pass` (gitignored)
 
-Everything is handled automatically on first run — just execute:
+Fresh nodes do not have passwordless sudo configured yet, so the first run
+requires the sudo password:
 
 ```bash
-./run.sh homelab
+./run.sh homelab --ask-become-pass
 ```
 
 The script will:
 1. Generate `group_vars/vault.yml` with random secrets (and offer to encrypt it)
 2. Copy `inventory/hosts.example.ini` → `prod.ini` and open it in your editor
-3. After you fill in real IPs and save, the playbook runs immediately
+3. After you fill in real IPs and save, the playbook runs
 
-On all subsequent runs `run.sh` picks up `.vault_pass` automatically — no extra flags needed.
+The `base_packages` role writes `/etc/sudoers.d/<user>` on every managed node,
+so all subsequent runs work without a sudo prompt:
+
+```bash
+./run.sh homelab
+```
 
 ## Running playbooks
 

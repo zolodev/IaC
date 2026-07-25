@@ -6,16 +6,24 @@ Automates infrastructure for the home lab (Jetson + Zimaboards + zh) and the RIS
 
 ```bash
 pip install ansible
-
-# Create local inventory with real IPs (gitignored)
-cp inventory/hosts.example.yml prod.ini
-# Edit prod.ini with real IPs and hostnames
-
-# Create vault with sensitive variables
-cp group_vars/vault.example.yml group_vars/vault.yml
-# Fill in values, then encrypt:
-ansible-vault encrypt group_vars/vault.yml
 ```
+
+## First run
+
+On the first run `run.sh` will automatically:
+- Generate a random k3s token and Garage RPC secret
+- Write `group_vars/vault.yml` (gitignored)
+- Offer to encrypt it with ansible-vault and save `.vault_pass` (gitignored)
+
+The only thing you need to do manually is create `prod.ini` with your real hosts:
+
+```bash
+cp inventory/hosts.example.yml prod.ini
+# Edit prod.ini — fill in real IPs and hostnames
+./run.sh homelab
+```
+
+On all subsequent runs `run.sh` picks up `.vault_pass` automatically — no extra flags needed.
 
 ## Running playbooks
 

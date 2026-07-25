@@ -1,8 +1,8 @@
 ---
-# Konfigurerar zh: k3s agent + Garage S3
+# Set up zh: k3s agent + Garage S3
 #   ansible-playbook playbooks/setup-zh.yml
 
-- name: Grundkonfiguration zh
+- name: Base configuration for zh
   hosts: zh
   roles:
     - role: timezone

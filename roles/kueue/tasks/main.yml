@@ -1,0 +1,35 @@
+---
+- name: Install Kueue controller
+  shell: >
+    kubectl apply --server-side -f
+    https://github.com/kubernetes-sigs/kueue/releases/download/v{{ kueue_version }}/manifests.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Wait for Kueue controller to be ready
+  shell: >
+    kubectl rollout status deployment/kueue-controller-manager
+    -n kueue-system --timeout=120s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Apply ResourceFlavors
+  shell: kubectl apply -f -
+  args:
+    stdin: "{{ lookup('template', 'resource-flavors.yml.j2') }}"
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Apply ClusterQueues
+  shell: kubectl apply -f -
+  args:
+    stdin: "{{ lookup('template', 'cluster-queues.yml.j2') }}"
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Apply WorkloadPriorityClasses
+  shell: kubectl apply -f -
+  args:
+    stdin: "{{ lookup('template', 'priority-classes.yml.j2') }}"
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml

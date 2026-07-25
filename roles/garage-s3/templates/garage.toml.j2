@@ -1,0 +1,18 @@
+metadata_dir = "{{ garage_data_dir }}/meta"
+data_dir     = "{{ garage_data_dir }}/data"
+db_engine    = "lmdb"
+
+replication_factor = 1
+
+rpc_bind_addr    = "{{ garage_rpc_bind }}"
+rpc_public_addr  = "{{ ansible_default_ipv4.address }}:3901"
+rpc_secret       = "{{ vault_garage_rpc_secret }}"
+
+[s3_api]
+s3_region        = "{{ garage_region }}"
+api_bind_addr    = "{{ garage_s3_bind }}"
+
+[s3_web]
+bind_addr = "0.0.0.0:3902"
+root_domain = ".web.garage.local"
+index = "index.html"

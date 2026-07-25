@@ -1,23 +1,86 @@
-# IaC - Ansible playbooks
-This repo is to manage and automate my servers using Ansible.
+# IaC — Ansible playbooks
 
-# Pre-requisite
-In Windows `WSL` we need to export the variable `ANSIBLE_CONFIG`:
-```sh
-export ANSIBLE_CONFIG=/mnt/c/Users/Zolo/projects/IaC/ansible.cfg
+Automates infrastructure for the home lab (Jetson + Zimaboards + zh) and the RISE cluster.
+
+## Prerequisites
+
+```bash
+pip install ansible
+
+# Create local inventory with real IPs (gitignored)
+cp inventory/hosts.example.yml prod.ini
+# Edit prod.ini with real IPs and hostnames
+
+# Create vault with sensitive variables
+cp group_vars/vault.example.yml group_vars/vault.yml
+# Fill in values, then encrypt:
+ansible-vault encrypt group_vars/vault.yml
 ```
 
-´main.yml´ is the main playbook.
-Run it with following command:
-```sh
-ansible-playbook main.yml -i inv.ini
+## Running playbooks
+
+```bash
+./run.sh              # setup-homelab (default)
+./run.sh homelab      # k3s + NVIDIA + sealed-secrets + kueue
+./run.sh zh           # k3s agent + Garage S3 on zh
+./run.sh base         # security updates on all nodes
+./run.sh prep         # prepare the Ansible control host
 ```
 
-Or run individual `playbooks`
-```sh
-ansible-playbook ./playbooks/apt.yml -i inv.ini
+With vault password prompt:
+```bash
+./run.sh homelab --ask-vault-pass
 ```
-To scaffold a new role use the following command:
-```sh
-ansible-galaxy init my_role
+
+Or store the password locally (gitignored):
+```bash
+echo "your-vault-password" > .vault_pass
+chmod 600 .vault_pass
+./run.sh homelab   # reads .vault_pass automatically
+```
+
+## Ansible Vault
+
+Sensitive variables (k3s token, Garage RPC secret) are stored encrypted in `group_vars/vault.yml`.
+
+```bash
+# Encrypt
+ansible-vault encrypt group_vars/vault.yml
+
+# Edit
+ansible-vault edit group_vars/vault.yml
+
+# Change password
+ansible-vault rekey group_vars/vault.yml
+
+# View contents
+ansible-vault view group_vars/vault.yml
+```
+
+Generate strong values:
+```bash
+openssl rand -hex 32   # k3s token
+openssl rand -hex 32   # Garage RPC secret (must be 64 hex chars)
+```
+
+## Role structure
+
+```
+roles/
+  auto_update/       security updates (unattended-upgrades)
+  base_packages/     common packages on all nodes
+  silent_motd/       quiet login message
+  timezone/          timezone (Europe/Stockholm)
+  k3s-server/        install k3s server+agent (Jetson)
+  k3s-agent/         join k3s cluster (Zimaboards, zh)
+  nvidia-runtime/    containerd NVIDIA runtime (Jetson)
+  garage-s3/         self-hosted S3 storage (zh)
+  sealed-secrets/    encrypted k8s secrets (GitOps-safe)
+  kueue/             job queue with GPU priority tiers
+```
+
+## Create a new role
+
+```bash
+ansible-galaxy init roles/my-role
 ```

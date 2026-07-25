@@ -1,0 +1,68 @@
+---
+- name: Create garage user
+  user:
+    name: garage
+    system: yes
+    shell: /sbin/nologin
+    home: "{{ garage_data_dir }}"
+    create_home: yes
+
+- name: Create garage directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: garage
+    group: garage
+    mode: "0750"
+  loop:
+    - "{{ garage_data_dir }}"
+    - "{{ garage_data_dir }}/meta"
+    - "{{ garage_data_dir }}/data"
+    - /etc/garage
+
+- name: Set Garage architecture
+  set_fact:
+    garage_arch: "{{ 'x86_64' if ansible_architecture == 'x86_64' else 'aarch64' }}-unknown-linux-musl"
+
+- name: Download Garage binary
+  get_url:
+    url: "https://garagehq.deuxfleurs.fr/_releases/{{ garage_version }}/{{ garage_arch }}/garage"
+    dest: /usr/local/bin/garage
+    mode: "0755"
+
+- name: Write Garage config
+  template:
+    src: garage.toml.j2
+    dest: /etc/garage/garage.toml
+    owner: garage
+    group: garage
+    mode: "0640"
+  notify: restart garage
+
+- name: Write Garage systemd service
+  copy:
+    dest: /etc/systemd/system/garage.service
+    content: |
+      [Unit]
+      Description=Garage S3-compatible object storage
+      After=network.target
+
+      [Service]
+      Type=simple
+      User=garage
+      Group=garage
+      ExecStart=/usr/local/bin/garage -c /etc/garage/garage.toml server
+      Restart=always
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: "0644"
+  notify: restart garage
+
+- name: Enable and start Garage
+  systemd:
+    name: garage
+    state: started
+    enabled: yes
+    daemon_reload: yes

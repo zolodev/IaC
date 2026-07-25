@@ -1,0 +1,24 @@
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: WorkloadPriorityClass
+metadata:
+  name: gold
+spec:
+  value: 1000
+  description: "Gold tier — highest priority, can preempt silver and free"
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: WorkloadPriorityClass
+metadata:
+  name: silver
+spec:
+  value: 500
+  description: "Silver tier — can borrow GPU from gold when idle"
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: WorkloadPriorityClass
+metadata:
+  name: free
+spec:
+  value: 100
+  description: "Free tier — CPU only, lowest priority"

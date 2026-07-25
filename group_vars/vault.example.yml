@@ -1,0 +1,55 @@
+---
+# vault.example.yml — Template for sensitive variables
+#
+# ════════════════════════════════════════════════════════════
+#  STEP-BY-STEP: secure usage with ansible-vault
+# ════════════════════════════════════════════════════════════
+#
+# 1. Copy this template to vault.yml (gitignored):
+#
+#      cp group_vars/vault.example.yml group_vars/vault.yml
+#
+# 2. Fill in real values in vault.yml
+#
+# 3. Encrypt the file:
+#
+#      ansible-vault encrypt group_vars/vault.yml
+#
+#    Choose a strong password and store it in your password manager.
+#    The encrypted file is safe to commit to git.
+#
+# 4. Run a playbook with vault:
+#
+#      ./run.sh homelab --ask-vault-pass
+#
+#    Or store the password locally (gitignored):
+#
+#      echo "your-vault-password" > .vault_pass
+#      chmod 600 .vault_pass
+#      ./run.sh homelab   # ansible-vault reads .vault_pass automatically
+#
+# 5. Edit an encrypted vault.yml:
+#
+#      ansible-vault edit group_vars/vault.yml
+#
+# 6. Change the vault password:
+#
+#      ansible-vault rekey group_vars/vault.yml
+#
+# ════════════════════════════════════════════════════════════
+#  Generate strong values
+# ════════════════════════════════════════════════════════════
+#
+#  k3s token (any long random string):
+#    openssl rand -hex 32
+#
+#  Garage RPC secret (must be exactly 32 bytes hex = 64 chars):
+#    openssl rand -hex 32
+#
+# ════════════════════════════════════════════════════════════
+
+# k3s cluster token — shared between server and all agents
+vault_k3s_token: ""
+
+# Garage S3 — internal RPC communication between Garage nodes
+vault_garage_rpc_secret: ""

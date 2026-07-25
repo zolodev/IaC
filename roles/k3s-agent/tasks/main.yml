@@ -1,0 +1,21 @@
+---
+- name: Download k3s install script
+  get_url:
+    url: https://get.k3s.io
+    dest: /tmp/k3s-install.sh
+    mode: "0755"
+
+- name: Install k3s agent
+  shell: |
+    INSTALL_K3S_VERSION="{{ k3s_version }}" \
+    K3S_URL="{{ k3s_server_url }}" \
+    K3S_TOKEN="{{ k3s_token }}" \
+    sh /tmp/k3s-install.sh agent
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Ensure k3s-agent service is running
+  systemd:
+    name: k3s-agent
+    state: started
+    enabled: yes

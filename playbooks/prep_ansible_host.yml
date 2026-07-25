@@ -1,5 +1,6 @@
 - name: Install Ansible Host
-  hosts: "ansible_host"
+  hosts: localhost
+  connection: local
   become: true
   tasks:
     - name: Ensure python3 and python3-pip

@@ -1,2 +1,12 @@
 # .gitignore
 *.ini
+*.retry
+collections/
+*.log
+.vault_pass
+
+# Local inventory with real IPs — never committed to git
+# prod.ini is already covered by *.ini above
+
+# Vault — only commit after encrypting with ansible-vault
+group_vars/vault.yml

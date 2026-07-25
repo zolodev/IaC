@@ -1,0 +1,25 @@
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ResourceFlavor
+metadata:
+  name: gpu-jetson
+spec:
+  nodeLabels:
+    gpu: jetson
+    kubernetes.io/hostname: jetson
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ResourceFlavor
+metadata:
+  name: cpu-zima
+spec:
+  nodeLabels:
+    node-type: zima
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ResourceFlavor
+metadata:
+  name: cpu-zh
+spec:
+  nodeLabels:
+    kubernetes.io/hostname: zh

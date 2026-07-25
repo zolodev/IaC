@@ -1,0 +1,30 @@
+---
+- name: Create containerd config directory
+  file:
+    path: /var/lib/rancher/k3s/agent/etc/containerd
+    state: directory
+    mode: "0755"
+
+- name: Write containerd config template for NVIDIA runtime
+  copy:
+    dest: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
+    content: |
+      [plugins."io.containerd.grpc.v1.cri".containerd]
+        default_runtime_name = "nvidia"
+
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
+          runtime_type = "io.containerd.runc.v2"
+          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
+            BinaryName = "/usr/bin/nvidia-container-runtime"
+    mode: "0644"
+
+- name: Restart k3s to apply containerd config
+  systemd:
+    name: k3s
+    state: restarted
+
+- name: Wait for k3s to be ready again
+  wait_for:
+    port: 6443
+    delay: 5
+    timeout: 60

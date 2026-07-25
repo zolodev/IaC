@@ -1,0 +1,77 @@
+---
+# Gold — guaranteed GPU access, can preempt lower tiers
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: gold-tier
+spec:
+  namespaceSelector: {}
+  preemption:
+    reclaimWithinCohort: Any
+    withinClusterQueue: LowerPriority
+  cohort: paradise
+  resourceGroups:
+  - coveredResources: ["nvidia.com/gpu", "cpu", "memory"]
+    flavors:
+    - name: gpu-jetson
+      resources:
+      - name: nvidia.com/gpu
+        nominalQuota: 1
+      - name: cpu
+        nominalQuota: 4
+      - name: memory
+        nominalQuota: 8Gi
+---
+# Silver — borrows GPU when gold is idle, otherwise CPU
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: silver-tier
+spec:
+  namespaceSelector: {}
+  cohort: paradise
+  preemption:
+    reclaimWithinCohort: Any
+    withinClusterQueue: LowerPriority
+  resourceGroups:
+  - coveredResources: ["nvidia.com/gpu", "cpu", "memory"]
+    flavors:
+    - name: gpu-jetson
+      resources:
+      - name: nvidia.com/gpu
+        nominalQuota: 0        # borrows from gold when idle
+        borrowingLimit: 1
+      - name: cpu
+        nominalQuota: 4
+      - name: memory
+        nominalQuota: 8Gi
+    - name: cpu-zima
+      resources:
+      - name: cpu
+        nominalQuota: 4
+      - name: memory
+        nominalQuota: 4Gi
+---
+# Free — CPU only, no GPU
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: free-tier
+spec:
+  namespaceSelector: {}
+  cohort: paradise
+  resourceGroups:
+  - coveredResources: ["cpu", "memory"]
+    flavors:
+    - name: cpu-zima
+      resources:
+      - name: cpu
+        nominalQuota: 2
+      - name: memory
+        nominalQuota: 2Gi
+    - name: cpu-zh
+      resources:
+      - name: cpu
+        nominalQuota: 2
+      - name: memory
+        nominalQuota: 2Gi

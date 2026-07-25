@@ -1,0 +1,23 @@
+---
+# ── k3s ──────────────────────────────────────────────────────────────────────
+k3s_version: "v1.31.4+k3s1"
+k3s_token: "{{ vault_k3s_token }}"          # stored in ansible-vault
+k3s_server_ip: "192.168.1.x"               # Jetson IP (local network)
+k3s_server_url: "https://{{ k3s_server_ip }}:6443"
+
+# ── Garage S3 ─────────────────────────────────────────────────────────────────
+garage_version: "v1.0.1"
+garage_data_dir: "/var/lib/garage"
+garage_rpc_bind: "0.0.0.0:3901"
+garage_s3_bind: "0.0.0.0:3900"
+garage_region: "garage"
+
+# ── Sealed Secrets ────────────────────────────────────────────────────────────
+sealed_secrets_version: "0.27.1"
+
+# ── Kueue ─────────────────────────────────────────────────────────────────────
+kueue_version: "0.9.1"
+
+# ── Common ────────────────────────────────────────────────────────────────────
+timezone: "Europe/Stockholm"
+specific_user: "zolo"

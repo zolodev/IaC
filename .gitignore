@@ -5,6 +5,7 @@
 collections/
 *.log
 .vault_pass
+!.vault_pass.example
 
 # Local inventory with real IPs — never committed to git
 # prod.ini is already covered by *.ini above

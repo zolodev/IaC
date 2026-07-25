@@ -1,0 +1,55 @@
+# .vault_pass.example — template for the vault password file
+#
+# ════════════════════════════════════════════════════════════
+#  What this file is
+# ════════════════════════════════════════════════════════════
+#
+# .vault_pass is a plain-text file containing the password used
+# to encrypt and decrypt group_vars/vault.yml with ansible-vault.
+#
+# Ansible reads it automatically when run.sh finds it — no
+# --ask-vault-pass prompt needed on subsequent runs.
+#
+# ════════════════════════════════════════════════════════════
+#  Where it lives
+# ════════════════════════════════════════════════════════════
+#
+# Place it in the root of this repository (next to ansible.cfg):
+#
+#   iac/
+#   ├── ansible.cfg
+#   ├── .vault_pass          ← here (gitignored)
+#   ├── .vault_pass.example  ← this file (safe to commit)
+#   └── ...
+#
+# ════════════════════════════════════════════════════════════
+#  Setup
+# ════════════════════════════════════════════════════════════
+#
+# 1. Copy this file:
+#
+#      cp .vault_pass.example .vault_pass
+#
+# 2. Replace the line below with your actual vault password:
+
+your-vault-password-here
+
+# 3. Restrict permissions so only your user can read it:
+#
+#      chmod 600 .vault_pass
+#
+# 4. Encrypt group_vars/vault.yml if not already done:
+#
+#      ansible-vault encrypt --vault-password-file .vault_pass group_vars/vault.yml
+#
+# run.sh picks up .vault_pass automatically from this point on.
+#
+# ════════════════════════════════════════════════════════════
+#  Security
+# ════════════════════════════════════════════════════════════
+#
+# .vault_pass is listed in .gitignore — it is never committed to git.
+# Do not share it, store it in a password manager instead.
+# If you suspect the password has been compromised, rekey the vault:
+#
+#   ansible-vault rekey --vault-password-file .vault_pass group_vars/vault.yml

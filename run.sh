@@ -77,12 +77,16 @@ if [ -f "$PWD/.vault_pass" ]; then
     VAULT_ARGS=(--vault-password-file "$PWD/.vault_pass")
 fi
 
-# ── Local inventory with real IPs — never committed to git ───────────────────
+# ── Create prod.ini from example if missing ───────────────────────────────────
 if [ ! -f "$PWD/prod.ini" ]; then
-    echo "ERROR: prod.ini not found — create it from inventory/hosts.example.ini"
-    echo "  cp inventory/hosts.example.ini prod.ini"
-    echo "  # fill in real IPs and hostnames"
-    exit 1
+    echo ""
+    echo "┌─────────────────────────────────────────────────────────────────┐"
+    echo "│  prod.ini not found — creating from hosts.example.ini           │"
+    echo "│  Fill in your real IPs, then save and close to continue.        │"
+    echo "└─────────────────────────────────────────────────────────────────┘"
+    echo ""
+    cp "$PWD/inventory/hosts.example.ini" "$PWD/prod.ini"
+    "${EDITOR:-nano}" "$PWD/prod.ini"
 fi
 
 INVENTORY="$PWD/prod.ini"

@@ -15,13 +15,16 @@ On the first run `run.sh` will automatically:
 - Write `group_vars/vault.yml` (gitignored)
 - Offer to encrypt it with ansible-vault and save `.vault_pass` (gitignored)
 
-The only thing you need to do manually is create `prod.ini` with your real hosts:
+Everything is handled automatically on first run — just execute:
 
 ```bash
-cp inventory/hosts.example.ini prod.ini
-# Edit prod.ini — fill in real IPs and hostnames
 ./run.sh homelab
 ```
+
+The script will:
+1. Generate `group_vars/vault.yml` with random secrets (and offer to encrypt it)
+2. Copy `inventory/hosts.example.ini` → `prod.ini` and open it in your editor
+3. After you fill in real IPs and save, the playbook runs immediately
 
 On all subsequent runs `run.sh` picks up `.vault_pass` automatically — no extra flags needed.
 

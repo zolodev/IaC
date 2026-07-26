@@ -16,20 +16,33 @@
     - role: silent_motd
   tags: [base]
 
-- name: Update and upgrade APT packages
+# - name: Update and upgrade APT packages
+#   hosts: homelab
+#   become: true
+#   tasks:
+#     - name: Update the APT package index
+#       ansible.builtin.apt:
+#         update_cache: true
+
+#     - name: Upgrade all APT packages
+#       ansible.builtin.apt:
+#         upgrade: true
+#         autoclean: true
+#         autoremove: true
+#   tags: [base]
+
+- name: Apply security updates
   hosts: homelab
   become: true
   tasks:
-    - name: Update the APT package index
+    - name: Update apt cache
       ansible.builtin.apt:
         update_cache: true
 
-    - name: Upgrade all APT packages
-      ansible.builtin.apt:
-        upgrade: true
-        autoclean: true
-        autoremove: true
-  tags: [base]
+    - name: Run unattended-upgrades for security patches only
+      ansible.builtin.command:
+        cmd: unattended-upgrade --verbose
+  tags: [security]
 
 - name: Reboot after base configuration
   hosts: homelab

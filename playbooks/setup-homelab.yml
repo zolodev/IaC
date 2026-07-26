@@ -16,6 +16,14 @@
     - role: silent_motd
   tags: [base]
 
+- name: Reboot after base configuration
+  hosts: homelab
+  tasks:
+    - name: Reboot and wait for server to come back
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+  tags: [reboot]
+
 - name: k3s server (Jetson)
   hosts: k3s_server
   roles:

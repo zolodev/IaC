@@ -78,7 +78,13 @@ case "$TARGET" in
             GARAGE_RPC=$(set +o pipefail; cat /dev/urandom | tr -dc 'a-zA-Z0-9!#$%&()*+,-./:<=>?@[]^_{}~' | head -c 50)
             cp "$PWD/group_vars/vault.example.yml" "$VAULT_FILE"
             chmod 600 "$VAULT_FILE"
-            sed -i "s/^vault_garage_rpc_secret: \"\"/vault_garage_rpc_secret: \"$GARAGE_RPC\"/" "$VAULT_FILE"
+            python3 - "$VAULT_FILE" "$GARAGE_RPC" <<'PYEOF'
+import sys
+path, val = sys.argv[1], sys.argv[2]
+content = open(path).read()
+content = content.replace('vault_garage_rpc_secret: ""', f'vault_garage_rpc_secret: "{val}"')
+open(path, 'w').write(content)
+PYEOF
 
             echo "┌────────────────────────────────────────────────────────────────────────────┐"
             echo "│  Generated secrets — save these in Bitwarden before continuing             │"

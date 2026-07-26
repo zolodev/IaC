@@ -74,17 +74,18 @@ case "$TARGET" in
 
         # ── 4. Create vault.yml from example if missing ───────────────────────
         if [ ! -f "$VAULT_FILE" ]; then
-            GARAGE_RPC=$(openssl rand -hex 32)
+            # Exclude \ from Garage secret — TOML double-quoted strings treat it as escape
+            GARAGE_RPC=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9!#$%&()*+,-./:<=>?@[]^_{}~' | head -c 50)
             cp "$PWD/group_vars/vault.example.yml" "$VAULT_FILE"
             chmod 600 "$VAULT_FILE"
             sed -i "s/^vault_garage_rpc_secret: \"\"/vault_garage_rpc_secret: \"$GARAGE_RPC\"/" "$VAULT_FILE"
 
-            echo "┌─────────────────────────────────────────────────────────────────┐"
-            echo "│  Generated secrets — save these in Bitwarden before continuing  │"
-            echo "├─────────────────────────────────────────────────────────────────┤"
-            printf "│  Vault password:       %-43s│\n" "$VAULT_PASS"
-            printf "│  Garage RPC secret:    %-43s│\n" "$GARAGE_RPC"
-            echo "└─────────────────────────────────────────────────────────────────┘"
+            echo "┌────────────────────────────────────────────────────────────────────────────┐"
+            echo "│  Generated secrets — save these in Bitwarden before continuing             │"
+            echo "├────────────────────────────────────────────────────────────────────────────┤"
+            printf "│  Vault password:    %-54s │\n" "$VAULT_PASS"
+            printf "│  Garage RPC secret: %-54s │\n" "$GARAGE_RPC"
+            echo "└────────────────────────────────────────────────────────────────────────────┘"
             echo ""
             echo "Opening vault.yml — fill in vault_k3s_token and vault_become_pass,"
             echo "then save and close."

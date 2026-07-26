@@ -62,7 +62,7 @@ case "$TARGET" in
 
         # ── 2. Create .vault_pass with generated password if missing ─────────
         if [ ! -f "$PWD/.vault_pass" ]; then
-            VAULT_PASS=$(openssl rand -base64 32)
+            VAULT_PASS=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9!#$%&()*+,-./:<=>?@[\]^_{}~' | head -c 50)
             echo "$VAULT_PASS" > "$PWD/.vault_pass"
             chmod 600 "$PWD/.vault_pass"
             echo "  ✓ .vault_pass generated"

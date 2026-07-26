@@ -10,8 +10,8 @@ Automates infrastructure for the home lab (Jetson + Zimaboards + zh).
 
 This will:
 1. Install Ansible if not already installed
-2. Generate `.vault_pass` (gitignored) with a strong random password — **save it in Bitwarden**
-3. Generate `group_vars/all/vault.yml` (gitignored) with a random Garage RPC secret, then open it in your editor — fill in `vault_k3s_token` and `vault_become_pass` (sudo password for your servers)
+2. Generate `.vault_pass` (gitignored) with a strong random password — **save it in a passwordmanager**
+3. Generate `group_vars/all/vault.yml` (gitignored) with a random Garage RPC secret, then open it in your editor — fill in `ansible_become_pass` (sudo password for your servers)
 4. Copy `inventory/hosts.example.ini` → `prod.ini` (gitignored) and open it in your editor — fill in real IPs
 
 Then run the playbooks:
@@ -64,11 +64,8 @@ their own, on any subset of nodes, without pulling in everything else:
 # Also upgrade packages (+ autoclean, autoremove)
 ./run.sh apt --limit jetson --tags upgrade
 
-# Set timezone/locale on all nodes (does NOT reboot by default)
+# Set timezone/locale on all nodes (does reboot by default)
 ./run.sh timezone
-
-# Same, but also reboot the node(s) afterwards to apply the change
-./run.sh timezone --limit jetson --tags reboot
 ```
 
 The upgrade task in `playbooks/apt.yml` and the reboot task in

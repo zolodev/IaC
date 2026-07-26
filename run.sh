@@ -62,7 +62,7 @@ case "$TARGET" in
 
         # ── 2. Create .vault_pass with generated password if missing ─────────
         if [ ! -f "$PWD/.vault_pass" ]; then
-            VAULT_PASS=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9!#$%&()*+,-./:<=>?@[\]^_{}~' | head -c 50)
+            VAULT_PASS=$(set +o pipefail; cat /dev/urandom | tr -dc 'a-zA-Z0-9!#$%&()*+,-./:<=>?@[\]^_{}~' | head -c 50)
             echo "$VAULT_PASS" > "$PWD/.vault_pass"
             chmod 600 "$PWD/.vault_pass"
             echo "  ✓ .vault_pass generated"
@@ -75,7 +75,7 @@ case "$TARGET" in
         # ── 4. Create vault.yml from example if missing ───────────────────────
         if [ ! -f "$VAULT_FILE" ]; then
             # Exclude \ from Garage secret — TOML double-quoted strings treat it as escape
-            GARAGE_RPC=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9!#$%&()*+,-./:<=>?@[]^_{}~' | head -c 50)
+            GARAGE_RPC=$(set +o pipefail; cat /dev/urandom | tr -dc 'a-zA-Z0-9!#$%&()*+,-./:<=>?@[]^_{}~' | head -c 50)
             cp "$PWD/group_vars/vault.example.yml" "$VAULT_FILE"
             chmod 600 "$VAULT_FILE"
             sed -i "s/^vault_garage_rpc_secret: \"\"/vault_garage_rpc_secret: \"$GARAGE_RPC\"/" "$VAULT_FILE"

@@ -1,0 +1,72 @@
+---
+# Install Helm (required for the Headlamp chart).
+# The script is idempotent — skipped if /usr/local/bin/helm already exists.
+- name: Install Helm
+  shell: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    creates: /usr/local/bin/helm
+
+- name: Add Headlamp Helm repository
+  shell: helm repo add headlamp https://headlamp-k8s.github.io/headlamp/
+  register: repo_add
+  changed_when: "'already exists' not in repo_add.stdout"
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Update Helm repositories
+  shell: helm repo update
+  changed_when: true
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Deploy Headlamp via Helm
+  shell: >
+    helm upgrade --install headlamp headlamp/headlamp
+    --namespace headlamp
+    --create-namespace
+    --set service.type=NodePort
+    --set service.nodePort={{ headlamp_nodeport }}
+  register: headlamp_deploy
+  changed_when: "'already deployed' not in headlamp_deploy.stdout"
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Wait for Headlamp to be ready
+  shell: kubectl rollout status deployment/headlamp -n headlamp --timeout=120s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+# Create a ServiceAccount so you can log in to Headlamp with a token.
+# kubectl create token headlamp-admin -n headlamp  →  paste in the browser.
+- name: Create Headlamp admin ServiceAccount
+  shell: |
+    kubectl apply -f - <<EOF
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: headlamp-admin
+      namespace: headlamp
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: headlamp-admin
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: cluster-admin
+    subjects:
+      - kind: ServiceAccount
+        name: headlamp-admin
+        namespace: headlamp
+    EOF
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Print Headlamp access instructions
+  debug:
+    msg:
+      - "Headlamp is available at http://{{ ansible_host }}:{{ headlamp_nodeport }}"
+      - "Generate a login token:"
+      - "  kubectl create token headlamp-admin -n headlamp"
+      - "Paste the token in the Headlamp login screen."

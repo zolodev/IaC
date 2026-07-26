@@ -18,6 +18,10 @@ sealed_secrets_version: "0.27.1"
 # ── Kueue ─────────────────────────────────────────────────────────────────────
 kueue_version: "0.9.1"
 
+# ── Headlamp ──────────────────────────────────────────────────────────────────
+# NodePort in range 30000–32767. Access at http://<jetson-ip>:30800
+headlamp_nodeport: 30800
+
 # ── Common ────────────────────────────────────────────────────────────────────
 timezone: "Europe/Stockholm"
 specific_user: "zolo"

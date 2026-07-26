@@ -128,21 +128,15 @@ case "$TARGET" in
             exit 1
         fi
 
-        # ── Pass vault password file if it exists ─────────────────────────────
-        VAULT_ARGS=()
-        if [ -f "$PWD/.vault_pass" ]; then
-            VAULT_ARGS=(--vault-password-file "$PWD/.vault_pass")
-        fi
-
         case "$TARGET" in
             homelab)
-                ansible-playbook playbooks/setup-homelab.yml -i "$INVENTORY" "${VAULT_ARGS[@]}" "${@:2}"
+                ansible-playbook playbooks/setup-homelab.yml -i "$INVENTORY" "${@:2}"
                 ;;
             zh)
-                ansible-playbook playbooks/setup-zh.yml -i "$INVENTORY" "${VAULT_ARGS[@]}" "${@:2}"
+                ansible-playbook playbooks/setup-zh.yml -i "$INVENTORY" "${@:2}"
                 ;;
             base)
-                ansible-playbook playbooks/apt.yml -i "$INVENTORY" "${VAULT_ARGS[@]}" "${@:2}"
+                ansible-playbook playbooks/apt.yml -i "$INVENTORY" "${@:2}"
                 ;;
         esac
         ;;

@@ -1,17 +1,40 @@
 #!/bin/bash
 # run.sh — run the right playbook with local inventory
 #
-# prod.ini lives locally on zh and is gitignored (*.ini).
+# prod.ini lives locally and is gitignored (*.ini).
 # Copy inventory/hosts.example.ini as a template and adapt.
 #
 # Usage:
-#   ./run.sh                  # run setup-homelab (default)
-#   ./run.sh homelab          # run setup-homelab
-#   ./run.sh zh               # run setup-zh
+#   ./run.sh homelab          # full home lab setup
+#   ./run.sh zh               # set up zh node only
 #   ./run.sh base             # apt security updates on all nodes
-#   ./run.sh prep             # prepare the Ansible control host
+#   ./run.sh prep             # bootstrap the Ansible control host (Jetson)
+#   ./run.sh --help           # show this help
 
 set -euo pipefail
+
+usage() {
+    echo ""
+    echo "Usage: ./run.sh <command> [ansible-options]"
+    echo ""
+    echo "Commands:"
+    echo "  homelab    Full home lab setup (timezone, packages, k3s, add-ons)"
+    echo "  zh         Set up zh node only"
+    echo "  base       Run apt security updates on all nodes"
+    echo "  prep       Bootstrap the Ansible control host (Jetson) via SSH"
+    echo ""
+    echo "Any extra arguments after the command are passed through to ansible-playbook."
+    echo "Examples:"
+    echo "  ./run.sh homelab --tags k3s"
+    echo "  ./run.sh homelab --limit jetson --check"
+    echo "  ./run.sh prep --ask-become-pass"
+    echo ""
+}
+
+if [[ $# -eq 0 || "$1" == "--help" || "$1" == "-h" ]]; then
+    usage
+    exit 0
+fi
 
 export ANSIBLE_CONFIG=$PWD/ansible.cfg
 
@@ -90,7 +113,7 @@ if [ ! -f "$PWD/prod.ini" ]; then
 fi
 
 INVENTORY="$PWD/prod.ini"
-TARGET="${1:-homelab}"
+TARGET="$1"
 
 case "$TARGET" in
     homelab)
@@ -106,8 +129,8 @@ case "$TARGET" in
         ansible-playbook playbooks/prep_ansible_host.yml -i "$INVENTORY" "${VAULT_ARGS[@]}" "${@:2}"
         ;;
     *)
-        echo "Unknown target: $TARGET"
-        echo "Usage: ./run.sh [homelab|zh|base|prep]"
+        echo "Unknown command: $TARGET"
+        usage
         exit 1
         ;;
 esac

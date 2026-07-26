@@ -10,5 +10,5 @@ collections/
 # Local inventory with real IPs — never committed to git
 # prod.ini is already covered by *.ini above
 
-# Vault — only commit after encrypting with ansible-vault
+# Vault — never committed, kept local only
 group_vars/vault.yml

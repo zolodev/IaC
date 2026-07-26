@@ -53,3 +53,6 @@ vault_k3s_token: ""
 
 # Garage S3 — internal RPC communication between Garage nodes
 vault_garage_rpc_secret: ""
+
+# Sudo password for managed nodes — used by Ansible instead of --ask-become-pass
+vault_become_pass: ""

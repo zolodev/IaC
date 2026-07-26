@@ -46,7 +46,7 @@ Sensitive variables are stored encrypted in `group_vars/vault.yml`:
 |---|---|
 | `vault_k3s_token` | Shared secret between k3s server and agents |
 | `vault_garage_rpc_secret` | Garage S3 internal RPC secret (auto-generated) |
-| `vault_become_pass` | Sudo password used by Ansible on managed nodes |
+| `ansible_become_pass` | Sudo password used by Ansible on managed nodes |
 
 ### Edit vault.yml
 

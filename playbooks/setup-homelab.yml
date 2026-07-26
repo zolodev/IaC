@@ -10,7 +10,8 @@
   hosts: homelab
   roles:
     - role: timezone
-    - role: base_packages
+    # - role: base_packages
+    - role: passwordless_sudo
     - role: auto_update
     - role: silent_motd
   tags: [base]

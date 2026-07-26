@@ -85,7 +85,8 @@ ansible-vault view group_vars/all/vault.yml --vault-password-file .vault_pass
 ```
 roles/
   auto_update/       security updates (unattended-upgrades)
-  base_packages/     common packages + passwordless sudo
+  base_packages/     common packages on all nodes
+  passwordless_sudo/ configure passwordless sudo for the ansible user
   silent_motd/       quiet login message
   timezone/          timezone (Europe/Stockholm)
   k3s-server/        install k3s server (Jetson)

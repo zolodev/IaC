@@ -1,0 +1,8 @@
+---
+- name: Configure passwordless sudo for ansible user
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers.d/{{ specific_user }}
+    line: "{{ specific_user }} ALL=(ALL) NOPASSWD: ALL"
+    create: true
+    mode: "0440"
+    validate: "visudo -cf %s"

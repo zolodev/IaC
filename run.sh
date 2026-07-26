@@ -98,7 +98,7 @@ PYEOF
             echo ""
             "${EDITOR:-nano}" "$VAULT_FILE"
 
-            ansible-vault encrypt --vault-password-file "$PWD/.vault_pass" "$VAULT_FILE"
+            ansible-vault encrypt "$VAULT_FILE"
             echo "  ✓ vault.yml encrypted"
         else
             echo "  ✓ vault.yml already exists — skipping"

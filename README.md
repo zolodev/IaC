@@ -11,7 +11,7 @@ Automates infrastructure for the home lab (Jetson + Zimaboards + zh).
 This will:
 1. Install Ansible if not already installed
 2. Generate `.vault_pass` (gitignored) with a strong random password — **save it in Bitwarden**
-3. Generate `group_vars/vault.yml` (gitignored) with a random Garage RPC secret, then open it in your editor — fill in `vault_k3s_token` and `vault_become_pass` (sudo password for your servers)
+3. Generate `group_vars/all/vault.yml` (gitignored) with a random Garage RPC secret, then open it in your editor — fill in `vault_k3s_token` and `vault_become_pass` (sudo password for your servers)
 4. Copy `inventory/hosts.example.ini` → `prod.ini` (gitignored) and open it in your editor — fill in real IPs
 
 Then run the playbooks:
@@ -40,7 +40,7 @@ Extra arguments are passed through to `ansible-playbook`:
 
 ## Ansible Vault
 
-Sensitive variables are stored encrypted in `group_vars/vault.yml`:
+Sensitive variables are stored encrypted in `group_vars/all/vault.yml`:
 
 | Variable | Description |
 |---|---|
@@ -51,7 +51,7 @@ Sensitive variables are stored encrypted in `group_vars/vault.yml`:
 ### Edit vault.yml
 
 ```bash
-ansible-vault edit group_vars/vault.yml --vault-password-file .vault_pass
+ansible-vault edit group_vars/all/vault.yml --vault-password-file .vault_pass
 ```
 
 ### Change vault_become_pass
@@ -59,14 +59,14 @@ ansible-vault edit group_vars/vault.yml --vault-password-file .vault_pass
 If your sudo password changes on the managed nodes:
 
 ```bash
-ansible-vault edit group_vars/vault.yml --vault-password-file .vault_pass
+ansible-vault edit group_vars/all/vault.yml --vault-password-file .vault_pass
 # Update the vault_become_pass line, save and close
 ```
 
 ### Change the vault password itself
 
 ```bash
-ansible-vault rekey group_vars/vault.yml \
+ansible-vault rekey group_vars/all/vault.yml \
   --vault-password-file .vault_pass \
   --new-vault-password-file /dev/stdin
 # Enter new password, update .vault_pass and Bitwarden
@@ -77,7 +77,7 @@ chmod 600 .vault_pass
 ### View vault contents
 
 ```bash
-ansible-vault view group_vars/vault.yml --vault-password-file .vault_pass
+ansible-vault view group_vars/all/vault.yml --vault-password-file .vault_pass
 ```
 
 ## Role structure

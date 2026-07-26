@@ -7,13 +7,13 @@
 #
 # 1. Copy this template to vault.yml (gitignored):
 #
-#      cp group_vars/vault.example.yml group_vars/vault.yml
+#      cp group_vars/vault.example.yml group_vars/all/vault.yml
 #
 # 2. Fill in real values in vault.yml
 #
 # 3. Encrypt the file:
 #
-#      ansible-vault encrypt group_vars/vault.yml
+#      ansible-vault encrypt group_vars/all/vault.yml
 #
 #    Choose a strong password and store it in your password manager.
 #    The encrypted file is safe to commit to git.
@@ -30,11 +30,11 @@
 #
 # 5. Edit an encrypted vault.yml:
 #
-#      ansible-vault edit group_vars/vault.yml
+#      ansible-vault edit group_vars/all/vault.yml
 #
 # 6. Change the vault password:
 #
-#      ansible-vault rekey group_vars/vault.yml
+#      ansible-vault rekey group_vars/all/vault.yml
 #
 # ════════════════════════════════════════════════════════════
 #  Generate strong values

@@ -35,7 +35,7 @@ fi
 
 export ANSIBLE_CONFIG=$PWD/ansible.cfg
 
-VAULT_FILE="$PWD/group_vars/vault.yml"
+VAULT_FILE="$PWD/group_vars/all/vault.yml"
 INVENTORY="$PWD/prod.ini"
 TARGET="$1"
 
@@ -118,7 +118,7 @@ case "$TARGET" in
     homelab|zh|base)
         # ── Guard: require vault.yml and prod.ini ─────────────────────────────
         if [ ! -f "$VAULT_FILE" ]; then
-            echo "Error: group_vars/vault.yml not found."
+            echo "Error: group_vars/all/vault.yml not found."
             echo "Run './run.sh prep' first."
             exit 1
         fi

@@ -11,4 +11,4 @@ collections/
 # prod.ini is already covered by *.ini above
 
 # Vault — never committed, kept local only
-group_vars/vault.yml
+group_vars/all/vault.yml

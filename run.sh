@@ -8,7 +8,6 @@
 #   ./run.sh homelab          # full home lab setup
 #   ./run.sh zh               # set up zh node only
 #   ./run.sh base             # apt security updates on all nodes
-#   ./run.sh prep             # bootstrap the Ansible control host (Jetson)
 #   ./run.sh --help           # show this help
 
 set -euo pipefail
@@ -21,7 +20,6 @@ usage() {
     echo "  homelab    Full home lab setup (timezone, packages, k3s, add-ons)"
     echo "  zh         Set up zh node only"
     echo "  base       Run apt security updates on all nodes"
-    echo "  prep       Bootstrap the Ansible control host (Jetson) via SSH"
     echo ""
     echo "Any extra arguments after the command are passed through to ansible-playbook."
     echo "Examples:"
@@ -124,9 +122,6 @@ case "$TARGET" in
         ;;
     base)
         ansible-playbook playbooks/apt.yml -i "$INVENTORY" "${VAULT_ARGS[@]}" "${@:2}"
-        ;;
-    prep)
-        ansible-playbook playbooks/prep_ansible_host.yml -i "$INVENTORY" "${VAULT_ARGS[@]}" "${@:2}"
         ;;
     *)
         echo "Unknown command: $TARGET"

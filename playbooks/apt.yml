@@ -1,3 +1,13 @@
+---
+# Refresh the apt cache on all home lab nodes.
+# The actual upgrade is gated behind --tags upgrade (see the "Upgrade all
+# APT packages" task below) since autoremove/a kernel bump can break things
+# (e.g. NVIDIA driver compat on the Jetson) — same pattern as the reboot
+# task in playbooks/timezone.yml.
+#
+#   ansible-playbook playbooks/apt.yml
+#   ansible-playbook playbooks/apt.yml --tags upgrade   # also upgrade packages
+
 - name: Update and Upgrade APT Packages
   hosts: homelab
   become: true
@@ -11,3 +21,4 @@
         upgrade: "yes"
         autoclean: "yes"
         autoremove: "yes"
+      tags: [upgrade, never]

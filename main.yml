@@ -11,6 +11,5 @@
     - dotfiles
     - base_packages
     - auto_update
-    - timezone      # Will reboot the server
     # - silent_motd
     # - list_installed_packages

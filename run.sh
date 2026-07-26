@@ -1,30 +1,40 @@
 #!/bin/bash
-# run.sh — run the right playbook with local inventory
+# run.sh — run one or more playbooks with local inventory
 #
 # Usage:
-#   ./run.sh prep             # install Ansible and create config files (first time)
-#   ./run.sh homelab          # full home lab setup
-#   ./run.sh zh               # set up zh node only
-#   ./run.sh base             # apt security updates on all nodes
-#   ./run.sh --help           # show this help
+#   ./run.sh prep              # install Ansible and create config files (first time)
+#   ./run.sh homelab           # full home lab setup
+#   ./run.sh zh                # set up zh node only
+#   ./run.sh apt                # refresh apt cache on all nodes (add --tags upgrade to upgrade)
+#   ./run.sh timezone          # set timezone (run separately, can reboot)
+#   ./run.sh homelab apt       # run multiple playbooks in sequence
+#   ./run.sh --help            # show this help
 
 set -euo pipefail
 
 usage() {
     echo ""
-    echo "Usage: ./run.sh <command> [ansible-options]"
+    echo "Usage: ./run.sh <command> [<command> ...] [ansible-options]"
     echo ""
     echo "Commands:"
     echo "  prep              Install Ansible and create vault.yml + prod.ini (run first)"
     echo "  prep --reset      Regenerate vault.yml and .vault_pass (new secrets)"
-    echo "  homelab    Full home lab setup (timezone, packages, k3s, add-ons)"
+    echo "  homelab    Full home lab setup (packages, k3s, add-ons)"
     echo "  zh         Set up zh node only"
-    echo "  base       Run apt security updates on all nodes"
+    echo "  apt        Refresh apt cache on all nodes (--tags upgrade to also upgrade)"
+    echo "  timezone   Set timezone on all nodes (run separately, can reboot)"
     echo ""
-    echo "Any extra arguments after the command are passed through to ansible-playbook."
+    echo "Multiple commands run their playbooks in sequence, each as its own"
+    echo "ansible-playbook invocation — nothing is combined via ansible tags."
+    echo ""
+    echo "Any arguments after the command(s) are passed through to every"
+    echo "ansible-playbook invocation."
     echo "Examples:"
     echo "  ./run.sh homelab --tags k3s"
     echo "  ./run.sh homelab --limit jetson --check"
+    echo "  ./run.sh timezone --limit jetson --tags reboot"
+    echo "  ./run.sh apt --tags upgrade"
+    echo "  ./run.sh homelab apt --limit jetson"
     echo ""
 }
 
@@ -37,10 +47,18 @@ export ANSIBLE_CONFIG=$PWD/ansible.cfg
 
 VAULT_FILE="$PWD/group_vars/all/vault.yml"
 INVENTORY="$PWD/prod.ini"
-TARGET="$1"
 
-case "$TARGET" in
-    prep)
+playbook_file() {
+    case "$1" in
+        homelab)  echo "playbooks/setup-homelab.yml" ;;
+        zh)       echo "playbooks/setup-zh.yml" ;;
+        apt)      echo "playbooks/apt.yml" ;;
+        timezone) echo "playbooks/timezone.yml" ;;
+        *)        return 1 ;;
+    esac
+}
+
+if [[ "$1" == "prep" ]]; then
         RESET=false
         if [[ "${2:-}" == "--reset" ]]; then
             RESET=true
@@ -119,37 +137,39 @@ PYEOF
 
         echo "Setup complete. Run: ./run.sh homelab"
         exit 0
-        ;;
+fi
 
-    homelab|zh|base)
-        # ── Guard: require vault.yml and prod.ini ─────────────────────────────
-        if [ ! -f "$VAULT_FILE" ]; then
-            echo "Error: group_vars/all/vault.yml not found."
-            echo "Run './run.sh prep' first."
-            exit 1
-        fi
-        if [ ! -f "$INVENTORY" ]; then
-            echo "Error: prod.ini not found."
-            echo "Run './run.sh prep' first."
-            exit 1
-        fi
+# ── Guard: require vault.yml and prod.ini ─────────────────────────────────
+if [ ! -f "$VAULT_FILE" ]; then
+    echo "Error: group_vars/all/vault.yml not found."
+    echo "Run './run.sh prep' first."
+    exit 1
+fi
+if [ ! -f "$INVENTORY" ]; then
+    echo "Error: prod.ini not found."
+    echo "Run './run.sh prep' first."
+    exit 1
+fi
 
-        case "$TARGET" in
-            homelab)
-                ansible-playbook playbooks/setup-homelab.yml -i "$INVENTORY" "${@:2}"
-                ;;
-            zh)
-                ansible-playbook playbooks/setup-zh.yml -i "$INVENTORY" "${@:2}"
-                ;;
-            base)
-                ansible-playbook playbooks/apt.yml -i "$INVENTORY" "${@:2}"
-                ;;
-        esac
-        ;;
-
-    *)
-        echo "Unknown command: $TARGET"
+# ── Collect one or more playbook names, then pass the rest through ────────
+PLAYBOOKS=()
+while [[ $# -gt 0 && "$1" != -* ]]; do
+    if ! FILE=$(playbook_file "$1"); then
+        echo "Unknown command: $1"
         usage
         exit 1
-        ;;
-esac
+    fi
+    PLAYBOOKS+=("$FILE")
+    shift
+done
+
+if [[ ${#PLAYBOOKS[@]} -eq 0 ]]; then
+    echo "No command given."
+    usage
+    exit 1
+fi
+
+for PB in "${PLAYBOOKS[@]}"; do
+    echo "── ansible-playbook $PB ──"
+    ansible-playbook "$PB" -i "$INVENTORY" "$@"
+done

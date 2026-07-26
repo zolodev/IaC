@@ -9,7 +9,6 @@
 - name: Base configuration for all nodes
   hosts: homelab
   roles:
-    - role: timezone
     # - role: base_packages
     - role: passwordless_sudo
     - role: auto_update
@@ -42,7 +41,32 @@
     - name: Run unattended-upgrades for security patches only
       ansible.builtin.command:
         cmd: unattended-upgrade --verbose
-  tags: [security]
+
+    - name: Install fail2ban
+      ansible.builtin.apt:
+        name: fail2ban
+        state: present
+
+    - name: Configure fail2ban bantime and escalation
+      ansible.builtin.copy:
+        dest: /etc/fail2ban/jail.d/customisations.local
+        content: |
+          [DEFAULT]
+          bantime = 1h
+          bantime.increment = true
+      notify: Restart fail2ban
+
+    - name: Enable and start fail2ban
+      ansible.builtin.systemd:
+        name: fail2ban
+        state: started
+        enabled: true
+  handlers:
+    - name: Restart fail2ban
+      ansible.builtin.systemd:
+        name: fail2ban
+        state: restarted
+  tags: [base, security]
 
 - name: Reboot after base configuration
   hosts: homelab
@@ -50,7 +74,7 @@
     - name: Reboot and wait for server to come back
       ansible.builtin.reboot:
         reboot_timeout: 300
-  tags: [reboot]
+  tags: [reboot, never]
 
 - name: k3s server (Jetson)
   hosts: k3s_server

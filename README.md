@@ -27,7 +27,8 @@ Then run the playbooks:
 ./run.sh prep --reset     # regenerate vault.yml and .vault_pass with new secrets
 ./run.sh homelab          # full home lab setup
 ./run.sh zh               # set up zh node only
-./run.sh base             # apt security updates on all nodes
+./run.sh apt              # refresh apt cache on all nodes (add --tags upgrade to upgrade)
+./run.sh timezone         # set timezone on all nodes
 ./run.sh --help           # show all commands
 ```
 
@@ -37,6 +38,44 @@ Extra arguments are passed through to `ansible-playbook`:
 ./run.sh homelab --tags k3s
 ./run.sh homelab --limit jetson --check
 ```
+
+### Run multiple playbooks in one go
+
+You can chain command names — each one runs as its own `ansible-playbook`
+invocation, in order, with any trailing options applied to all of them.
+Nothing is combined via ansible tags:
+
+```bash
+./run.sh homelab apt --limit jetson
+# equivalent to:
+#   ansible-playbook playbooks/setup-homelab.yml -i prod.ini --limit jetson
+#   ansible-playbook playbooks/apt.yml -i prod.ini --limit jetson
+```
+
+### Run a playbook separately
+
+`apt` and `timezone` are kept out of `homelab`/`zh` so they can be run on
+their own, on any subset of nodes, without pulling in everything else:
+
+```bash
+# Refresh the apt cache only, on one node (safe, no package changes)
+./run.sh apt --limit jetson
+
+# Also upgrade packages (+ autoclean, autoremove)
+./run.sh apt --limit jetson --tags upgrade
+
+# Set timezone/locale on all nodes (does NOT reboot by default)
+./run.sh timezone
+
+# Same, but also reboot the node(s) afterwards to apply the change
+./run.sh timezone --limit jetson --tags reboot
+```
+
+The upgrade task in `playbooks/apt.yml` and the reboot task in
+`playbooks/timezone.yml` are both tagged `[<tag>, never]`, so they're always
+skipped unless that tag is passed explicitly (`--tags upgrade` /
+`--tags reboot`) — this keeps a routine run from unexpectedly upgrading
+packages or rebooting a node.
 
 ## Ansible Vault
 
@@ -80,6 +119,16 @@ chmod 600 .vault_pass
 ansible-vault view group_vars/all/vault.yml --vault-password-file .vault_pass
 ```
 
+## Playbook structure
+
+```
+playbooks/
+  setup-homelab.yml  full home lab setup (base config, k3s, add-ons)
+  setup-zh.yml       zh node only (base config, Garage S3, k3s agent)
+  apt.yml            apt cache refresh on all nodes; upgrade needs --tags upgrade (run.sh apt)
+  timezone.yml       timezone + locale, run separately (run.sh timezone)
+```
+
 ## Role structure
 
 ```
@@ -88,7 +137,6 @@ roles/
   base_packages/     common packages on all nodes
   passwordless_sudo/ configure passwordless sudo for the ansible user
   silent_motd/       quiet login message
-  timezone/          timezone (Europe/Stockholm)
   k3s-server/        install k3s server (Jetson)
   k3s-agent/         join k3s cluster (Zimaboards, zh)
   nvidia-runtime/    containerd NVIDIA runtime (Jetson)

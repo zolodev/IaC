@@ -1,83 +1,83 @@
 # IaC — Ansible playbooks
 
-Automates infrastructure for the home lab (Jetson + Zimaboards + zh) and the RISE cluster.
+Automates infrastructure for the home lab (Jetson + Zimaboards + zh).
 
-## Prerequisites
-
-```bash
-pip install ansible
-```
-
-## First run
-
-On the first run `run.sh` will automatically:
-- Generate a random k3s token and Garage RPC secret
-- Write `group_vars/vault.yml` (gitignored)
-- Offer to encrypt it with ansible-vault and save `.vault_pass` (gitignored)
-
-Fresh nodes do not have passwordless sudo configured yet, so the first run
-requires the sudo password:
+## First time setup
 
 ```bash
-./run.sh homelab --ask-become-pass
+./run.sh prep
 ```
 
-The script will:
-1. Generate `group_vars/vault.yml` with random secrets (and offer to encrypt it)
-2. Copy `inventory/hosts.example.ini` → `prod.ini` and open it in your editor
-3. After you fill in real IPs and save, the playbook runs
+This will:
+1. Install Ansible if not already installed
+2. Generate `.vault_pass` (gitignored) with a strong random password — **save it in Bitwarden**
+3. Generate `group_vars/vault.yml` (gitignored) with a random Garage RPC secret, then open it in your editor — fill in `vault_k3s_token` and `vault_become_pass` (sudo password for your servers)
+4. Copy `inventory/hosts.example.ini` → `prod.ini` (gitignored) and open it in your editor — fill in real IPs
 
-The `base_packages` role writes `/etc/sudoers.d/<user>` on every managed node,
-so all subsequent runs work without a sudo prompt:
+Then run the playbooks:
 
 ```bash
 ./run.sh homelab
 ```
 
-## Running playbooks
+## Commands
 
 ```bash
-./run.sh              # setup-homelab (default)
-./run.sh homelab      # k3s + NVIDIA + sealed-secrets + kueue
-./run.sh zh           # k3s agent + Garage S3 on zh
-./run.sh base         # security updates on all nodes
-./run.sh prep         # prepare the Ansible control host
+./run.sh prep             # first-time setup (install Ansible, create config files)
+./run.sh prep --reset     # regenerate vault.yml and .vault_pass with new secrets
+./run.sh homelab          # full home lab setup
+./run.sh zh               # set up zh node only
+./run.sh base             # apt security updates on all nodes
+./run.sh --help           # show all commands
 ```
 
-With vault password prompt:
-```bash
-./run.sh homelab --ask-vault-pass
-```
+Extra arguments are passed through to `ansible-playbook`:
 
-Or store the password locally (gitignored):
 ```bash
-echo "your-vault-password" > .vault_pass
-chmod 600 .vault_pass
-./run.sh homelab   # reads .vault_pass automatically
+./run.sh homelab --tags k3s
+./run.sh homelab --limit jetson --check
 ```
 
 ## Ansible Vault
 
-Sensitive variables (k3s token, Garage RPC secret) are stored encrypted in `group_vars/vault.yml`.
+Sensitive variables are stored encrypted in `group_vars/vault.yml`:
+
+| Variable | Description |
+|---|---|
+| `vault_k3s_token` | Shared secret between k3s server and agents |
+| `vault_garage_rpc_secret` | Garage S3 internal RPC secret (auto-generated) |
+| `vault_become_pass` | Sudo password used by Ansible on managed nodes |
+
+### Edit vault.yml
 
 ```bash
-# Encrypt
-ansible-vault encrypt group_vars/vault.yml
-
-# Edit
-ansible-vault edit group_vars/vault.yml
-
-# Change password
-ansible-vault rekey group_vars/vault.yml
-
-# View contents
-ansible-vault view group_vars/vault.yml
+ansible-vault edit group_vars/vault.yml --vault-password-file .vault_pass
 ```
 
-Generate strong values:
+### Change vault_become_pass
+
+If your sudo password changes on the managed nodes:
+
 ```bash
-openssl rand -hex 32   # k3s token
-openssl rand -hex 32   # Garage RPC secret (must be 64 hex chars)
+ansible-vault edit group_vars/vault.yml --vault-password-file .vault_pass
+# Update the vault_become_pass line, save and close
+```
+
+### Change the vault password itself
+
+```bash
+ansible-vault rekey group_vars/vault.yml \
+  --vault-password-file .vault_pass \
+  --new-vault-password-file /dev/stdin
+# Enter new password, update .vault_pass and Bitwarden
+echo "new-password" > .vault_pass
+chmod 600 .vault_pass
+```
+
+### View vault contents
+
+```bash
+ansible-vault view group_vars/vault.yml --vault-password-file .vault_pass
 ```
 
 ## Role structure
@@ -85,15 +85,16 @@ openssl rand -hex 32   # Garage RPC secret (must be 64 hex chars)
 ```
 roles/
   auto_update/       security updates (unattended-upgrades)
-  base_packages/     common packages on all nodes
+  base_packages/     common packages + passwordless sudo
   silent_motd/       quiet login message
   timezone/          timezone (Europe/Stockholm)
-  k3s-server/        install k3s server+agent (Jetson)
+  k3s-server/        install k3s server (Jetson)
   k3s-agent/         join k3s cluster (Zimaboards, zh)
   nvidia-runtime/    containerd NVIDIA runtime (Jetson)
   garage-s3/         self-hosted S3 storage (zh)
-  sealed-secrets/    encrypted k8s secrets (GitOps-safe)
+  sealed-secrets/    encrypted k8s secrets
   kueue/             job queue with GPU priority tiers
+  headlamp/          Kubernetes dashboard (NodePort 30800)
 ```
 
 ## Create a new role

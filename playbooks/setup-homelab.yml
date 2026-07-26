@@ -16,6 +16,21 @@
     - role: silent_motd
   tags: [base]
 
+- name: Update and upgrade APT packages
+  hosts: homelab
+  become: true
+  tasks:
+    - name: Update the APT package index
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Upgrade all APT packages
+      ansible.builtin.apt:
+        upgrade: true
+        autoclean: true
+        autoremove: true
+  tags: [base]
+
 - name: Reboot after base configuration
   hosts: homelab
   tasks:

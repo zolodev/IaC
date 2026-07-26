@@ -51,32 +51,37 @@ case "$TARGET" in
         fi
         echo ""
 
-        # ── 2. Create .vault_pass from example if missing ────────────────────
+        # ── 2. Create .vault_pass with generated password if missing ─────────
         if [ ! -f "$PWD/.vault_pass" ]; then
-            cp "$PWD/.vault_pass.example" "$PWD/.vault_pass"
+            VAULT_PASS=$(openssl rand -base64 32)
+            echo "$VAULT_PASS" > "$PWD/.vault_pass"
             chmod 600 "$PWD/.vault_pass"
-            echo "Opening .vault_pass — replace the placeholder with your vault password,"
-            echo "then save and close."
-            echo ""
-            "${EDITOR:-nano}" "$PWD/.vault_pass"
-            echo "  ✓ .vault_pass saved"
+            echo "  ✓ .vault_pass generated"
         else
+            VAULT_PASS=$(cat "$PWD/.vault_pass")
             echo "  ✓ .vault_pass already exists — skipping"
         fi
         echo ""
 
         # ── 4. Create vault.yml from example if missing ───────────────────────
         if [ ! -f "$VAULT_FILE" ]; then
+            GARAGE_RPC=$(openssl rand -hex 32)
             cp "$PWD/group_vars/vault.example.yml" "$VAULT_FILE"
             chmod 600 "$VAULT_FILE"
-            GARAGE_RPC=$(openssl rand -hex 32)
             sed -i "s/^vault_garage_rpc_secret: \"\"/vault_garage_rpc_secret: \"$GARAGE_RPC\"/" "$VAULT_FILE"
-            echo "Opening vault.yml — vault_garage_rpc_secret is pre-filled."
-            echo "Fill in vault_k3s_token and vault_become_pass, then save and close."
+
+            echo "┌─────────────────────────────────────────────────────────────────┐"
+            echo "│  Generated secrets — save these in Bitwarden before continuing  │"
+            echo "├─────────────────────────────────────────────────────────────────┤"
+            printf "│  Vault password:       %-43s│\n" "$VAULT_PASS"
+            printf "│  Garage RPC secret:    %-43s│\n" "$GARAGE_RPC"
+            echo "└─────────────────────────────────────────────────────────────────┘"
+            echo ""
+            echo "Opening vault.yml — fill in vault_k3s_token and vault_become_pass,"
+            echo "then save and close."
             echo ""
             "${EDITOR:-nano}" "$VAULT_FILE"
 
-            echo ""
             ansible-vault encrypt --vault-password-file "$PWD/.vault_pass" "$VAULT_FILE"
             echo "  ✓ vault.yml encrypted"
         else

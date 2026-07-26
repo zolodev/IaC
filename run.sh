@@ -51,7 +51,21 @@ case "$TARGET" in
         fi
         echo ""
 
-        # ── 2. Create vault.yml from example if missing ───────────────────────
+        # ── 2. Create .vault_pass from example if missing ────────────────────
+        if [ ! -f "$PWD/.vault_pass" ]; then
+            cp "$PWD/.vault_pass.example" "$PWD/.vault_pass"
+            chmod 600 "$PWD/.vault_pass"
+            echo "Opening .vault_pass — replace the placeholder with your vault password,"
+            echo "then save and close."
+            echo ""
+            "${EDITOR:-nano}" "$PWD/.vault_pass"
+            echo "  ✓ .vault_pass saved"
+        else
+            echo "  ✓ .vault_pass already exists — skipping"
+        fi
+        echo ""
+
+        # ── 4. Create vault.yml from example if missing ───────────────────────
         if [ ! -f "$VAULT_FILE" ]; then
             cp "$PWD/group_vars/vault.example.yml" "$VAULT_FILE"
             chmod 600 "$VAULT_FILE"
@@ -60,27 +74,14 @@ case "$TARGET" in
             "${EDITOR:-nano}" "$VAULT_FILE"
 
             echo ""
-            if [ -f "$PWD/.vault_pass" ]; then
-                ansible-vault encrypt --vault-password-file "$PWD/.vault_pass" "$VAULT_FILE"
-                echo "  ✓ vault.yml encrypted with existing .vault_pass"
-            else
-                read -rp "  Encrypt vault.yml with ansible-vault? [Y/n] " answer
-                if [[ ! "$answer" =~ ^[Nn]$ ]]; then
-                    read -rsp "  Vault password: " vpass; echo ""
-                    echo "$vpass" > "$PWD/.vault_pass"
-                    chmod 600 "$PWD/.vault_pass"
-                    ansible-vault encrypt --vault-password-file "$PWD/.vault_pass" "$VAULT_FILE"
-                    echo "  ✓ vault.yml encrypted, password saved to .vault_pass"
-                else
-                    echo "  Skipped — vault.yml is unencrypted (do not share or commit)"
-                fi
-            fi
+            ansible-vault encrypt --vault-password-file "$PWD/.vault_pass" "$VAULT_FILE"
+            echo "  ✓ vault.yml encrypted"
         else
             echo "  ✓ vault.yml already exists — skipping"
         fi
         echo ""
 
-        # ── 3. Create prod.ini from example if missing ────────────────────────
+        # ── 5. Create prod.ini from example if missing ───────────────────────
         if [ ! -f "$INVENTORY" ]; then
             cp "$PWD/inventory/hosts.example.ini" "$INVENTORY"
             echo "Opening prod.ini — fill in your host IPs, then save and close."

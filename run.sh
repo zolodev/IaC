@@ -15,7 +15,8 @@ usage() {
     echo "Usage: ./run.sh <command> [ansible-options]"
     echo ""
     echo "Commands:"
-    echo "  prep       Install Ansible and create vault.yml + prod.ini (run first)"
+    echo "  prep              Install Ansible and create vault.yml + prod.ini (run first)"
+    echo "  prep --reset      Regenerate vault.yml and .vault_pass (new secrets)"
     echo "  homelab    Full home lab setup (timezone, packages, k3s, add-ons)"
     echo "  zh         Set up zh node only"
     echo "  base       Run apt security updates on all nodes"
@@ -40,6 +41,14 @@ TARGET="$1"
 
 case "$TARGET" in
     prep)
+        RESET=false
+        if [[ "${2:-}" == "--reset" ]]; then
+            RESET=true
+            echo "  --reset: existing vault.yml and .vault_pass will be replaced"
+            echo ""
+            rm -f "$VAULT_FILE" "$PWD/.vault_pass"
+        fi
+
         # ── 1. Install Ansible if missing ────────────────────────────────────
         if ! command -v ansible-playbook &>/dev/null; then
             echo "Ansible not found — installing..."

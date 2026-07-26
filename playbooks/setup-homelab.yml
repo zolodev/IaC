@@ -6,8 +6,8 @@
 #   ansible-playbook playbooks/setup-homelab.yml --tags k3s
 #   ansible-playbook playbooks/setup-homelab.yml --tags nvidia
 
-- name: Base configuration for all nodes
-  hosts: homelab
+- name: Base configuration — core servers (first)
+  hosts: core_servers
   roles:
     - role: timezone
     # - role: base_packages
@@ -16,8 +16,33 @@
     - role: silent_motd
   tags: [base]
 
-- name: Update and upgrade APT packages
-  hosts: homelab
+- name: Update and upgrade APT packages — core servers (first)
+  hosts: core_servers
+  become: true
+  tasks:
+    - name: Update the APT package index
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Upgrade all APT packages
+      ansible.builtin.apt:
+        upgrade: true
+        autoclean: true
+        autoremove: true
+  tags: [base]
+
+- name: Base configuration — workers (after core)
+  hosts: workers
+  roles:
+    - role: timezone
+    # - role: base_packages
+    - role: passwordless_sudo
+    - role: auto_update
+    - role: silent_motd
+  tags: [base]
+
+- name: Update and upgrade APT packages — workers (after core)
+  hosts: workers
   become: true
   tasks:
     - name: Update the APT package index
@@ -32,7 +57,7 @@
   tags: [base]
 
 - name: Reboot after base configuration
-  hosts: homelab
+  hosts: core_servers,workers
   tasks:
     - name: Reboot and wait for server to come back
       ansible.builtin.reboot:

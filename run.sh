@@ -69,7 +69,10 @@ case "$TARGET" in
         if [ ! -f "$VAULT_FILE" ]; then
             cp "$PWD/group_vars/vault.example.yml" "$VAULT_FILE"
             chmod 600 "$VAULT_FILE"
-            echo "Opening vault.yml — fill in your secrets, then save and close."
+            GARAGE_RPC=$(openssl rand -hex 32)
+            sed -i "s/^vault_garage_rpc_secret: \"\"/vault_garage_rpc_secret: \"$GARAGE_RPC\"/" "$VAULT_FILE"
+            echo "Opening vault.yml — vault_garage_rpc_secret is pre-filled."
+            echo "Fill in vault_k3s_token and vault_become_pass, then save and close."
             echo ""
             "${EDITOR:-nano}" "$VAULT_FILE"
 

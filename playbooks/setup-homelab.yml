@@ -76,28 +76,45 @@
         reboot_timeout: 300
   tags: [reboot, never]
 
-- name: k3s server (Jetson)
-  hosts: k3s_server
+# Split into two plays: the etcd-bootstrapping node must fully finish
+# installing k3s before the joining servers even start their play. In a
+# single shared play, Ansible's linear strategy runs each task in lockstep
+# across all hosts — the joining servers' "wait for initial server" task
+# (blocks up to 600s) would prevent this node's own "install k3s server"
+# task from ever starting, since that task can't begin for ANY host until
+# every host has passed the previous task. That's exactly the deadlock
+# that caused zyron/nova to time out waiting for a core-01 that could
+# never start.
+- name: k3s server (etcd-bootstrapping node)
+  hosts: k3s_server_init
   roles:
     - role: k3s-server
   tags: [k3s, k3s-server]
 
-- name: NVIDIA runtime (Jetson)
-  hosts: gpu_nodes
+- name: k3s server (joining nodes)
+  hosts: k3s_server:!k3s_server_init
   roles:
-    - role: nvidia-runtime
-  tags: [nvidia]
+    - role: k3s-server
+  tags: [k3s, k3s-server]
 
-- name: k3s agents (Zimaboards + zh)
+- name: k3s agents
   hosts: k3s_agents
   roles:
     - role: k3s-agent
   tags: [k3s, k3s-agent]
 
+# Runs after both k3s plays above — restarts whichever k3s service
+# (server or agent) is actually installed on the target, so this must run
+# once that's in place.
+- name: NVIDIA runtime
+  hosts: gpu_nodes
+  roles:
+    - role: nvidia-runtime
+  tags: [nvidia]
+
 - name: Cluster add-ons (run on server)
   hosts: k3s_server
   roles:
-    - role: sealed-secrets
     - role: kueue
     - role: headlamp
   tags: [addons]

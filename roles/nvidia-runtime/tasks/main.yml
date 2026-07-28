@@ -20,7 +20,7 @@
 
 - name: Restart k3s to apply containerd config
   systemd:
-    name: k3s
+    name: "{{ 'k3s' if k3s_role == 'server' else 'k3s-agent' }}"
     state: restarted
 
 - name: Wait for k3s to be ready again
@@ -28,3 +28,4 @@
     port: 6443
     delay: 5
     timeout: 60
+  when: k3s_role == 'server'

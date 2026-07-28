@@ -1,9 +1,9 @@
 ---
-# Set up zh: k3s agent + Garage S3
-#   ansible-playbook playbooks/setup-zh.yml
+# Set up the Garage S3 node: k3s agent + Garage S3
+#   ansible-playbook playbooks/setup-garage.yml
 
-- name: Base configuration for zh
-  hosts: zh
+- name: Base configuration
+  hosts: garage
   roles:
     - role: base_packages
     - role: auto_update
@@ -17,7 +17,7 @@
   tags: [garage]
 
 - name: k3s agent
-  hosts: zh
+  hosts: garage
   roles:
     - role: k3s-agent
   tags: [k3s]

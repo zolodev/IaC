@@ -2,7 +2,7 @@
 # ── k3s ──────────────────────────────────────────────────────────────────────
 k3s_version: "v1.31.4+k3s1"
 k3s_token: "{{ vault_k3s_token }}"          # stored in ansible-vault
-k3s_server_ip: "192.168.1.x"               # Jetson IP (local network)
+k3s_server_ip: "192.168.50.211"             # core-01 (k3s control-plane)
 k3s_server_url: "https://{{ k3s_server_ip }}:6443"
 
 # ── Garage S3 ─────────────────────────────────────────────────────────────────
@@ -12,14 +12,11 @@ garage_rpc_bind: "0.0.0.0:3901"
 garage_s3_bind: "0.0.0.0:3900"
 garage_region: "garage"
 
-# ── Sealed Secrets ────────────────────────────────────────────────────────────
-sealed_secrets_version: "0.27.1"
-
 # ── Kueue ─────────────────────────────────────────────────────────────────────
 kueue_version: "0.9.1"
 
 # ── Headlamp ──────────────────────────────────────────────────────────────────
-# NodePort in range 30000–32767. Access at http://<jetson-ip>:30800
+# NodePort in range 30000–32767. Access at http://<zyron-ip>:30800
 headlamp_nodeport: 30800
 
 # ── Common ────────────────────────────────────────────────────────────────────

@@ -4,9 +4,10 @@
 # Usage:
 #   ./run.sh prep              # install Ansible and create config files (first time)
 #   ./run.sh homelab           # full home lab setup
-#   ./run.sh zh                # set up zh node only
+#   ./run.sh garage             # set up the Garage S3 node
 #   ./run.sh apt                # refresh apt cache on all nodes (add --tags upgrade to upgrade)
 #   ./run.sh timezone          # set timezone (run separately, can reboot)
+#   ./run.sh uninstall-k3s     # cleanly remove k3s (server and/or agent)
 #   ./run.sh homelab apt       # run multiple playbooks in sequence
 #   ./run.sh --help            # show this help
 
@@ -20,9 +21,10 @@ usage() {
     echo "  prep              Install Ansible and create vault.yml + prod.ini (run first)"
     echo "  prep --reset      Regenerate vault.yml and .vault_pass (new secrets)"
     echo "  homelab    Full home lab setup (packages, k3s, add-ons)"
-    echo "  zh         Set up zh node only"
+    echo "  garage     Set up the Garage S3 node"
     echo "  apt        Refresh apt cache on all nodes (--tags upgrade to also upgrade)"
     echo "  timezone   Set timezone on all nodes (run separately, can reboot)"
+    echo "  uninstall-k3s  Cleanly remove k3s server/agent (use --limit to target a node)"
     echo ""
     echo "Multiple commands run their playbooks in sequence, each as its own"
     echo "ansible-playbook invocation — nothing is combined via ansible tags."
@@ -31,10 +33,11 @@ usage() {
     echo "ansible-playbook invocation."
     echo "Examples:"
     echo "  ./run.sh homelab --tags k3s"
-    echo "  ./run.sh homelab --limit jetson --check"
-    echo "  ./run.sh timezone --limit jetson --tags reboot"
+    echo "  ./run.sh homelab --limit zyron --check"
+    echo "  ./run.sh timezone --limit zyron --tags reboot"
     echo "  ./run.sh apt --tags upgrade"
-    echo "  ./run.sh homelab apt --limit jetson"
+    echo "  ./run.sh homelab apt --limit zyron"
+    echo "  ./run.sh uninstall-k3s --limit zyron"
     echo ""
 }
 
@@ -50,11 +53,12 @@ INVENTORY="$PWD/prod.ini"
 
 playbook_file() {
     case "$1" in
-        homelab)  echo "playbooks/setup-homelab.yml" ;;
-        zh)       echo "playbooks/setup-zh.yml" ;;
-        apt)      echo "playbooks/apt.yml" ;;
-        timezone) echo "playbooks/timezone.yml" ;;
-        *)        return 1 ;;
+        homelab)       echo "playbooks/setup-homelab.yml" ;;
+        garage)        echo "playbooks/setup-garage.yml" ;;
+        apt)           echo "playbooks/apt.yml" ;;
+        timezone)      echo "playbooks/timezone.yml" ;;
+        uninstall-k3s) echo "playbooks/revert-k3s.yml" ;;
+        *)             return 1 ;;
     esac
 }
 
@@ -92,15 +96,17 @@ if [[ "$1" == "prep" ]]; then
 
         # ── 4. Create vault.yml from example if missing ───────────────────────
         if [ ! -f "$VAULT_FILE" ]; then
-            # Exclude \ from Garage secret — TOML double-quoted strings treat it as escape
+            # Exclude \ from generated secrets — TOML double-quoted strings treat it as escape
             GARAGE_RPC=$(set +o pipefail; cat /dev/urandom | tr -dc 'a-zA-Z0-9!#$%&()*+,-./:<=>?@[]^_{}~' | head -c 50)
+            K3S_TOKEN=$(set +o pipefail; cat /dev/urandom | tr -dc 'a-zA-Z0-9!#$%&()*+,-./:<=>?@[]^_{}~' | head -c 50)
             cp "$PWD/group_vars/vault.example.yml" "$VAULT_FILE"
             chmod 600 "$VAULT_FILE"
-            python3 - "$VAULT_FILE" "$GARAGE_RPC" <<'PYEOF'
+            python3 - "$VAULT_FILE" "$GARAGE_RPC" "$K3S_TOKEN" <<'PYEOF'
 import sys
-path, val = sys.argv[1], sys.argv[2]
+path, garage_val, k3s_val = sys.argv[1], sys.argv[2], sys.argv[3]
 content = open(path).read()
-content = content.replace('vault_garage_rpc_secret: ""', f'vault_garage_rpc_secret: "{val}"')
+content = content.replace('vault_garage_rpc_secret: ""', f'vault_garage_rpc_secret: "{garage_val}"')
+content = content.replace('vault_k3s_token: ""', f'vault_k3s_token: "{k3s_val}"')
 open(path, 'w').write(content)
 PYEOF
 
@@ -109,9 +115,10 @@ PYEOF
             echo "├────────────────────────────────────────────────────────────────────────────┤"
             printf "│  Vault password:    %-54s │\n" "$VAULT_PASS"
             printf "│  Garage RPC secret: %-54s │\n" "$GARAGE_RPC"
+            printf "│  K3s token:         %-54s │\n" "$K3S_TOKEN"
             echo "└────────────────────────────────────────────────────────────────────────────┘"
             echo ""
-            echo "Opening vault.yml — fill in vault_k3s_token and vault_become_pass,"
+            echo "Opening vault.yml — fill in vault_become_pass (sudo password),"
             echo "then save and close."
             echo ""
             "${EDITOR:-nano}" "$VAULT_FILE"

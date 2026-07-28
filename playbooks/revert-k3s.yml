@@ -1,0 +1,53 @@
+---
+# Cleanly uninstall k3s (server and/or agent) from a node being repurposed —
+# e.g. zyron/nova going from "k3s server" to "pure worker" in the new
+# dedicated-core-servers architecture. Uses k3s's own official uninstall
+# scripts, so it also tears down iptables rules, CNI interfaces, and data
+# dirs correctly, not just the binary.
+#
+# Safe to run even if k3s (server or agent) was never installed on the
+# target — each uninstall step is skipped if its script isn't present.
+#
+#   ansible-playbook playbooks/revert-k3s.yml --limit zyron
+#   ansible-playbook playbooks/revert-k3s.yml --limit zyron,nova
+
+- name: Revert k3s installation
+  hosts: homelab
+  become: true
+  tasks:
+    - name: Check for k3s server uninstall script
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s-uninstall.sh
+      register: k3s_server_uninstall
+
+    - name: Uninstall k3s server
+      ansible.builtin.command: /usr/local/bin/k3s-uninstall.sh
+      when: k3s_server_uninstall.stat.exists
+
+    - name: Check for k3s agent uninstall script
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s-agent-uninstall.sh
+      register: k3s_agent_uninstall
+
+    - name: Uninstall k3s agent
+      ansible.builtin.command: /usr/local/bin/k3s-agent-uninstall.sh
+      when: k3s_agent_uninstall.stat.exists
+
+    - name: Remove kubeconfig
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.kube/config"
+        state: absent
+
+    # The k3s uninstall scripts tear down flannel's CNI interfaces
+    # (cni0/flannel.1/veth*) the same way installing them does — and that
+    # interface churn is what causes tailscaled to clear its own
+    # AdvertiseRoutes preference (see roles/k3s-server/tasks/main.yml for
+    # the confirmed log evidence). Re-apply it here too so uninstalling
+    # k3s doesn't silently take this node out of tailnet routing.
+    - name: Re-apply tailscale route advertisement (k3s uninstall's CNI teardown can clear it)
+      ansible.builtin.command:
+        cmd: "tailscale set --advertise-routes={{ tailscale_advertise_routes }}"
+      when: >
+        tailscale_advertise_routes is defined and
+        (k3s_server_uninstall.stat.exists or k3s_agent_uninstall.stat.exists)
+      changed_when: true

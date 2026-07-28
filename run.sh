@@ -118,7 +118,7 @@ PYEOF
             printf "│  K3s token:         %-54s │\n" "$K3S_TOKEN"
             echo "└────────────────────────────────────────────────────────────────────────────┘"
             echo ""
-            echo "Opening vault.yml — fill in vault_become_pass (sudo password),"
+            echo "Opening vault.yml — fill in ansible_become_pass (sudo password),"
             echo "then save and close."
             echo ""
             "${EDITOR:-nano}" "$VAULT_FILE"

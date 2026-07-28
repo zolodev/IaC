@@ -1,6 +1,6 @@
 # IaC — Ansible playbooks
 
-Automates infrastructure for the home lab (Zyron + Zimaboards + nova).
+Automates infrastructure for the home lab (Zyron, nova, core-01, and Proxmox worker VMs).
 
 ## First time setup
 
@@ -93,13 +93,13 @@ Sensitive variables are stored encrypted in `group_vars/all/vault.yml`:
 ansible-vault edit group_vars/all/vault.yml --vault-password-file .vault_pass
 ```
 
-### Change vault_become_pass
+### Change ansible_become_pass
 
 If your sudo password changes on the managed nodes:
 
 ```bash
 ansible-vault edit group_vars/all/vault.yml --vault-password-file .vault_pass
-# Update the vault_become_pass line, save and close
+# Update the ansible_become_pass line, save and close
 ```
 
 ### Change the vault password itself
@@ -138,11 +138,10 @@ roles/
   base_packages/     common packages on all nodes
   passwordless_sudo/ configure passwordless sudo for the ansible user
   silent_motd/       quiet login message
-  k3s-server/        install k3s server (Zyron)
-  k3s-agent/         join k3s cluster (Zimaboards, zh)
+  k3s-server/        install k3s server (Zyron, nova, core-01)
+  k3s-agent/         join k3s cluster (worker-01/02 Proxmox VMs, zyron, nova)
   nvidia-runtime/    containerd NVIDIA runtime (Zyron)
-  garage-s3/         self-hosted S3 storage (zh)
-  sealed-secrets/    encrypted k8s secrets
+  garage-s3/         self-hosted S3 storage (nova)
   kueue/             job queue with GPU priority tiers
   headlamp/          Kubernetes dashboard (NodePort 30800)
 ```

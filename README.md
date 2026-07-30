@@ -25,10 +25,12 @@ Then run the playbooks:
 ```bash
 ./run.sh prep             # first-time setup (install Ansible, create config files)
 ./run.sh prep --reset     # regenerate vault.yml and .vault_pass with new secrets
-./run.sh homelab          # full home lab setup
+./run.sh homelab          # full home lab setup (base config + k3s)
 ./run.sh garage            # set up the Garage S3 node
 ./run.sh apt              # refresh apt cache on all nodes (add --tags upgrade to upgrade)
 ./run.sh timezone         # set timezone on all nodes
+./run.sh kueue            # install Kueue (GPU-priority job queue) on k3s server nodes
+./run.sh headlamp         # install Headlamp (Kubernetes dashboard) on k3s server nodes
 ./run.sh --help           # show all commands
 ```
 
@@ -135,11 +137,13 @@ ansible-vault view group_vars/all/vault.yml --vault-password-file .vault_pass
 
 ```
 playbooks/
-  setup-homelab.yml       full home lab setup (base config, k3s, add-ons)
+  setup-homelab.yml       full home lab setup (base config, k3s)
   setup-garage.yml        Garage S3 node (base config, Garage S3, k3s agent)
   apt.yml                 apt cache refresh on all nodes; upgrade needs --tags upgrade (run.sh apt)
   timezone.yml            timezone + locale, run separately (run.sh timezone)
   revert-k3s.yml          cleanly remove k3s server/agent from a node (run.sh uninstall-k3s)
+  kueue.yml               Kueue (GPU-priority job queue) on k3s server nodes (run.sh kueue)
+  headlamp.yml            Headlamp (Kubernetes dashboard) on k3s server nodes (run.sh headlamp)
   k3s-server-debug.yml    same steps as k3s-server role, one per line — comment any out to
                           skip it when troubleshooting a server install manually
   k3s-uninstall-debug.yml same steps as revert-k3s.yml, one per line — comment any out to

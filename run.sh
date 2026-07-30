@@ -20,11 +20,13 @@ usage() {
     echo "Commands:"
     echo "  prep              Install Ansible and create vault.yml + prod.ini (run first)"
     echo "  prep --reset      Regenerate vault.yml and .vault_pass (new secrets)"
-    echo "  homelab    Full home lab setup (packages, k3s, add-ons)"
+    echo "  homelab    Full home lab setup (packages, k3s)"
     echo "  garage     Set up the Garage S3 node"
     echo "  apt        Refresh apt cache on all nodes (--tags upgrade to also upgrade)"
     echo "  timezone   Set timezone on all nodes (run separately, can reboot)"
     echo "  uninstall-k3s  Cleanly remove k3s server/agent (use --limit to target a node)"
+    echo "  kueue      Install Kueue (GPU-priority job queue) on k3s server nodes"
+    echo "  headlamp   Install Headlamp (Kubernetes dashboard) on k3s server nodes"
     echo ""
     echo "Multiple commands run their playbooks in sequence, each as its own"
     echo "ansible-playbook invocation — nothing is combined via ansible tags."
@@ -58,6 +60,8 @@ playbook_file() {
         apt)           echo "playbooks/apt.yml" ;;
         timezone)      echo "playbooks/timezone.yml" ;;
         uninstall-k3s) echo "playbooks/revert-k3s.yml" ;;
+        kueue)         echo "playbooks/kueue.yml" ;;
+        headlamp)      echo "playbooks/headlamp.yml" ;;
         *)             return 1 ;;
     esac
 }

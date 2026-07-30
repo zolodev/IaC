@@ -1,0 +1,12 @@
+---
+# Install Kueue (GPU-priority job queue) on the k3s server nodes.
+# Kept separate from setup-homelab.yml so it can be installed/reinstalled
+# on its own, without touching k3s or anything else.
+#
+#   ansible-playbook playbooks/kueue.yml -i prod.ini
+#   ./run.sh kueue
+
+- name: Kueue
+  hosts: k3s_server
+  roles:
+    - role: kueue

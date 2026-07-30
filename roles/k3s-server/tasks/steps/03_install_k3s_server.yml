@@ -9,6 +9,7 @@
       {{ '--node-taint CriticalAddonsOnly=true:NoExecute' if k3s_control_plane_only | default(false) else '' }} \
       {{ '--node-ip=' + k3s_node_ip if k3s_node_ip is defined else '' }} \
       {{ '--advertise-address=' + k3s_node_ip if k3s_node_ip is defined else '' }} \
+      {{ '--data-dir=' + k3s_data_dir if k3s_data_dir is defined else '' }} \
       --tls-san={{ ansible_host }}
   args:
     creates: /usr/local/bin/k3s

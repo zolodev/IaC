@@ -80,10 +80,3 @@
   roles:
     - role: nvidia-runtime
   tags: [nvidia]
-
-- name: Cluster add-ons (run on server)
-  hosts: k3s_server
-  roles:
-    - role: kueue
-    - role: headlamp
-  tags: [addons]

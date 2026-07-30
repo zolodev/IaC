@@ -1,0 +1,9 @@
+---
+- name: Print join token
+  slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: node_token
+
+- name: Show token for agent setup
+  debug:
+    msg: "k3s token: {{ node_token.content | b64decode | trim }}"

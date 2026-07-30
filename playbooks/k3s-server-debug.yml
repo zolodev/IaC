@@ -1,0 +1,54 @@
+---
+# Debug entrypoint for k3s server install/join — the exact same steps as
+# roles/k3s-server/tasks/main.yml (including the tailscale-routes-guard
+# checkpoints), but each imported as its own line here so you can comment
+# any of them out to skip that step while troubleshooting manually. Same
+# idea as the roles list in main.yml.
+#
+# Usage:
+#   ansible-playbook playbooks/k3s-server-debug.yml -i prod.ini --limit core-01
+#   ansible-playbook playbooks/k3s-server-debug.yml -i prod.ini --limit zyron,nova
+#
+# All the k3s_* / tailscale_advertise_routes vars come from prod.ini and
+# group_vars/all/vars.yml the same way they do for the normal role — no
+# extra setup needed, just comment out whichever steps you want to skip
+# and re-run against the host you're debugging.
+
+- name: k3s server — step-by-step debug
+  hosts: k3s_server
+  become: true
+  tasks:
+    - name: "[before install] Tailscale route check"
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+      vars:
+        checkpoint: "debug: before install"
+
+    - import_tasks: ../roles/k3s-server/tasks/steps/01_download_install_script.yml
+    - import_tasks: ../roles/k3s-server/tasks/steps/02_wait_for_initial_server.yml
+    - import_tasks: ../roles/k3s-server/tasks/steps/03_install_k3s_server.yml
+
+    - name: "[after install command] Tailscale route check"
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+      vars:
+        checkpoint: "debug: after install command"
+
+    - import_tasks: ../roles/k3s-server/tasks/steps/04_ensure_service_running.yml
+
+    - name: "[after service start] Tailscale route check"
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+      vars:
+        checkpoint: "debug: after service start"
+
+    - import_tasks: ../roles/k3s-server/tasks/steps/05_wait_for_k3s_ready.yml
+
+    - name: "[after k3s ready] Tailscale route check"
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+      vars:
+        checkpoint: "debug: after k3s ready"
+
+    - import_tasks: ../roles/k3s-server/tasks/steps/06_kubeconfig.yml
+    - import_tasks: ../roles/k3s-server/tasks/steps/07_print_token.yml

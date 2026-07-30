@@ -1,0 +1,12 @@
+#!/bin/bash
+# Auto-deployed by iac (roles/tailscale-routes-guard) — DO NOT EDIT MANUALLY,
+# changes will be overwritten on the next Ansible run. Edit the template at
+# roles/tailscale-routes-guard/templates/fix-tailscale-routes.sh.j2 instead.
+#
+# Re-applies this host's Tailscale route advertisement. k3s's CNI interface
+# churn on install/uninstall clears it as a side effect (tailscaled treats
+# the interface add/remove as a LinkChange event and drops its own
+# AdvertiseRoutes preference in response). Chaining this onto the
+# k3s install/uninstall scripts means the route gets fixed immediately,
+# regardless of whether they were run via Ansible or by hand.
+tailscale set --advertise-routes={{ tailscale_advertise_routes }}

@@ -1,0 +1,5 @@
+---
+- name: Check for k3s agent uninstall script
+  ansible.builtin.stat:
+    path: /usr/local/bin/k3s-agent-uninstall.sh
+  register: k3s_agent_uninstall

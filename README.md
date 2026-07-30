@@ -77,6 +77,18 @@ skipped unless that tag is passed explicitly (`--tags upgrade` /
 `--tags reboot`) — this keeps a routine run from unexpectedly upgrading
 packages or rebooting a node.
 
+## Fixing a dropped Tailscale route
+
+k3s's CNI (flannel) interface churn on install/uninstall causes tailscaled to
+clear a node's `AdvertiseRoutes` as a side effect (see
+`roles/tailscale-routes-guard/`). `k3s-server`/`revert-k3s.yml` re-apply it
+automatically at several checkpoints, but if you ever need to fix it by hand:
+
+```bash
+./fix-tailscale-routes.sh              # re-apply for every host with tailscale_advertise_routes set
+./fix-tailscale-routes.sh --dry-run    # just show current state, change nothing
+```
+
 ## Ansible Vault
 
 Sensitive variables are stored encrypted in `group_vars/all/vault.yml`:
@@ -123,27 +135,39 @@ ansible-vault view group_vars/all/vault.yml --vault-password-file .vault_pass
 
 ```
 playbooks/
-  setup-homelab.yml  full home lab setup (base config, k3s, add-ons)
-  setup-garage.yml   Garage S3 node (base config, Garage S3, k3s agent)
-  apt.yml            apt cache refresh on all nodes; upgrade needs --tags upgrade (run.sh apt)
-  timezone.yml       timezone + locale, run separately (run.sh timezone)
-  revert-k3s.yml     cleanly remove k3s server/agent from a node (run.sh uninstall-k3s)
+  setup-homelab.yml       full home lab setup (base config, k3s, add-ons)
+  setup-garage.yml        Garage S3 node (base config, Garage S3, k3s agent)
+  apt.yml                 apt cache refresh on all nodes; upgrade needs --tags upgrade (run.sh apt)
+  timezone.yml            timezone + locale, run separately (run.sh timezone)
+  revert-k3s.yml          cleanly remove k3s server/agent from a node (run.sh uninstall-k3s)
+  k3s-server-debug.yml    same steps as k3s-server role, one per line — comment any out to
+                          skip it when troubleshooting a server install manually
+  k3s-uninstall-debug.yml same steps as revert-k3s.yml, one per line — comment any out to
+                          skip it when troubleshooting an uninstall manually
 ```
 
 ## Role structure
 
 ```
 roles/
-  auto_update/       security updates (unattended-upgrades)
-  base_packages/     common packages on all nodes
-  passwordless_sudo/ configure passwordless sudo for the ansible user
-  silent_motd/       quiet login message
-  k3s-server/        install k3s server (Zyron, nova, core-01)
-  k3s-agent/         join k3s cluster (worker-01/02 Proxmox VMs — agent-only, no control plane)
-  nvidia-runtime/    containerd NVIDIA runtime (Zyron)
-  garage-s3/         self-hosted S3 storage (nova)
-  kueue/             job queue with GPU priority tiers
-  headlamp/          Kubernetes dashboard (NodePort 30800)
+  auto_update/           scheduled unattended-upgrades (systemd timers, runs unattended)
+  security_updates/      immediate apt update + unattended-upgrade run + fail2ban
+  base_packages/         common packages on all nodes
+  passwordless_sudo/     configure passwordless sudo for the ansible user
+  silent_motd/           quiet login message
+  k3s-server/            install k3s server (Zyron, nova, core-01), steps split under tasks/steps/
+  k3s-uninstall/         uninstall steps shared by revert-k3s.yml and k3s-uninstall-debug.yml
+  k3s-agent/             join k3s cluster (worker-01/02 Proxmox VMs — agent-only, no control plane)
+  tailscale-routes-guard/ checks + re-applies a node's Tailscale route advertisement; k3s's CNI
+                          interface churn on install/uninstall clears it as a side effect (see
+                          roles/k3s-server/tasks/main.yml for the confirmed root cause). Also
+                          deploys/removes /usr/local/bin/fix-tailscale-routes.sh, chained onto
+                          the k3s uninstall command itself so it self-heals immediately even if
+                          the uninstall script is ever run outside of Ansible.
+  nvidia-runtime/        containerd NVIDIA runtime (Zyron)
+  garage-s3/             self-hosted S3 storage (nova)
+  kueue/                 job queue with GPU priority tiers
+  headlamp/              Kubernetes dashboard (NodePort 30800)
 ```
 
 ## Create a new role

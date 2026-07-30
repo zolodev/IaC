@@ -2,7 +2,14 @@
 # ── k3s ──────────────────────────────────────────────────────────────────────
 k3s_version: "v1.31.4+k3s1"
 k3s_token: "{{ vault_k3s_token }}"          # stored in ansible-vault
-k3s_server_ip: "192.168.50.211"             # core-01 (k3s control-plane)
+# Derived from the k3s_server_init inventory group (the etcd-bootstrapping
+# node — see roles/k3s-server/tasks/main.yml and prod.ini) rather than
+# hardcoded, so it always matches whatever that host's ansible_host actually
+# is. Must be that host's Tailscale IP, not a LAN address it advertises a
+# route to itself — otherwise the moment its own route advertisement gets
+# cleared (k3s's CNI churn on install/uninstall does this as a side effect),
+# every other server node loses the address it uses to join/rejoin it too.
+k3s_server_ip: "{{ hostvars[groups['k3s_server_init'][0]].ansible_host }}"
 k3s_server_url: "https://{{ k3s_server_ip }}:6443"
 
 # ── Garage S3 ─────────────────────────────────────────────────────────────────

@@ -1,0 +1,5 @@
+---
+- name: Check for k3s server uninstall script
+  ansible.builtin.stat:
+    path: /usr/local/bin/k3s-uninstall.sh
+  register: k3s_server_uninstall

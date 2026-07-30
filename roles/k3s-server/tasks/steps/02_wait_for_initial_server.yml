@@ -1,0 +1,12 @@
+---
+# Only one server (k3s_cluster_init: true, e.g. core-01) bootstraps a new
+# etcd cluster with --cluster-init. Every other k3s_server host must join
+# that cluster via --server, using the same token — otherwise each server
+# silently bootstraps its own independent single-node cluster instead of
+# joining together.
+- name: Wait for the initial server to be reachable before joining
+  wait_for:
+    host: "{{ k3s_server_ip }}"
+    port: 6443
+    timeout: 600
+  when: not (k3s_cluster_init | default(false))

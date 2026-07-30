@@ -11,5 +11,6 @@
     - dotfiles
     - base_packages
     - auto_update
+    - security_updates
     # - silent_motd
     # - list_installed_packages

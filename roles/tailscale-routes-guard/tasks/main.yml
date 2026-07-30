@@ -1,0 +1,41 @@
+---
+# Checks this host's current Tailscale route advertisement and re-applies
+# it immediately if it's been cleared, before the calling playbook moves on
+# to its next step. Included at multiple checkpoints through the k3s
+# install/uninstall lifecycle (each given a distinct `checkpoint` label) so
+# it's visible in the play output exactly which step cleared it — see
+# roles/k3s-server/tasks/main.yml for the confirmed root cause (k3s's CNI
+# interface churn on start AND stop triggers tailscaled to clear
+# AdvertiseRoutes).
+#
+# No-op entirely on any host without tailscale_advertise_routes defined.
+#
+# Required var: checkpoint — a short label identifying where in the
+# lifecycle this check runs (e.g. "before install", "after k3s ready").
+
+- name: "[{{ checkpoint }}] Read current Tailscale route advertisement"
+  ansible.builtin.command: tailscale debug prefs
+  register: _ts_prefs
+  changed_when: false
+  when: tailscale_advertise_routes is defined
+
+- name: "[{{ checkpoint }}] Parse current AdvertiseRoutes"
+  ansible.builtin.set_fact:
+    _ts_current_routes: "{{ (_ts_prefs.stdout | from_json).AdvertiseRoutes | default([]) }}"
+  when: tailscale_advertise_routes is defined
+
+- name: "[{{ checkpoint }}] Route advertisement state"
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'OK — advertising ' + (_ts_current_routes | join(', '))
+         if _ts_current_routes
+         else 'CLEARED — expected ' + tailscale_advertise_routes + ', re-applying now' }}
+  when: tailscale_advertise_routes is defined
+
+- name: "[{{ checkpoint }}] Re-apply route advertisement (was cleared)"
+  ansible.builtin.command:
+    cmd: "tailscale set --advertise-routes={{ tailscale_advertise_routes }}"
+  when:
+    - tailscale_advertise_routes is defined
+    - not _ts_current_routes
+  changed_when: true

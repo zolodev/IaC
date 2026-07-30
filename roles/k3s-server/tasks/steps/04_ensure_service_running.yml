@@ -1,0 +1,10 @@
+---
+# k3s-install.sh hashes its resolved config and silently skips starting the
+# service if it looks unchanged from a previous install — even if the
+# service isn't actually running (e.g. leftover state from a prior
+# uninstall/reinstall). Don't rely on the install script for this.
+- name: Ensure k3s service is running
+  systemd:
+    name: k3s
+    state: started
+    enabled: true

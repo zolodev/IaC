@@ -1,0 +1,4 @@
+---
+- name: Uninstall k3s agent
+  ansible.builtin.command: /usr/local/bin/k3s-agent-uninstall.sh
+  when: k3s_agent_uninstall is defined and k3s_agent_uninstall.stat.exists

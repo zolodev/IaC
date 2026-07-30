@@ -1,0 +1,15 @@
+---
+# Removes the standalone fix-tailscale-routes.sh deployed by
+# deploy_local_fix.yml. Once k3s is fully uninstalled from this host there's
+# no more CNI churn to fix, so leaving the script behind is just stale
+# cruft that would silently keep re-advertising a route this node no
+# longer has any reason to carry.
+#
+# No-op on any host without tailscale_advertise_routes defined (nothing
+# would have been deployed in the first place).
+
+- name: "Remove local fix-tailscale-routes.sh"
+  ansible.builtin.file:
+    path: /usr/local/bin/fix-tailscale-routes.sh
+    state: absent
+  when: tailscale_advertise_routes is defined

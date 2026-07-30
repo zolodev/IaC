@@ -1,50 +1,36 @@
 ---
-- name: Download k3s install script
-  get_url:
-    url: https://get.k3s.io
-    dest: /tmp/k3s-install.sh
-    mode: "0755"
+# Runs every step in order, unconditionally — this is the entrypoint used
+# by the normal setup-homelab.yml flow. For manual step-by-step debugging
+# where you want to comment out individual steps, use
+# playbooks/k3s-server-debug.yml instead, which imports these same step
+# files (plus the tailscale-routes-guard checkpoints below) one line at a
+# time so any of them can be disabled without touching this file.
 
-# Only one server (k3s_cluster_init: true, e.g. core-01) bootstraps a new
-# etcd cluster with --cluster-init. Every other k3s_server host must join
-# that cluster via --server, using the same token — otherwise each server
-# silently bootstraps its own independent single-node cluster instead of
-# joining together.
-- name: Wait for the initial server to be reachable before joining
-  wait_for:
-    host: "{{ k3s_server_ip }}"
-    port: 6443
-    timeout: 600
-  when: not (k3s_cluster_init | default(false))
+- name: Tailscale route check — before anything
+  ansible.builtin.include_role:
+    name: tailscale-routes-guard
+  vars:
+    checkpoint: "k3s-server: before install"
 
-- name: Install k3s server
-  shell: |
-    INSTALL_K3S_VERSION="{{ k3s_version }}" \
-    K3S_TOKEN="{{ k3s_token }}" \
-    sh /tmp/k3s-install.sh \
-      --write-kubeconfig-mode 644 \
-      {{ '--cluster-init' if k3s_cluster_init | default(false) else '--server ' + k3s_server_url }} \
-      {{ '--node-taint CriticalAddonsOnly=true:NoExecute' if k3s_control_plane_only | default(false) else '' }} \
-      {{ '--node-ip=' + k3s_node_ip if k3s_node_ip is defined else '' }} \
-      {{ '--advertise-address=' + k3s_node_ip if k3s_node_ip is defined else '' }}
-  args:
-    creates: /usr/local/bin/k3s
+- import_tasks: steps/01_download_install_script.yml
+- import_tasks: steps/02_wait_for_initial_server.yml
+- import_tasks: steps/03_install_k3s_server.yml
 
-# k3s-install.sh hashes its resolved config and silently skips starting the
-# service if it looks unchanged from a previous install — even if the
-# service isn't actually running (e.g. leftover state from a prior
-# uninstall/reinstall). Don't rely on the install script for this.
-- name: Ensure k3s service is running
-  systemd:
-    name: k3s
-    state: started
-    enabled: true
+- name: Tailscale route check — after install command
+  ansible.builtin.include_role:
+    name: tailscale-routes-guard
+  vars:
+    checkpoint: "k3s-server: after install command"
 
-- name: Wait for k3s to be ready
-  wait_for:
-    port: 6443
-    delay: 5
-    timeout: 60
+- import_tasks: steps/04_ensure_service_running.yml
+
+- name: Tailscale route check — after service start
+  ansible.builtin.include_role:
+    name: tailscale-routes-guard
+  vars:
+    checkpoint: "k3s-server: after service start"
+
+- import_tasks: steps/05_wait_for_k3s_ready.yml
 
 # k3s's CNI (flannel) brings up cni0/flannel.1/veth* interfaces as it
 # starts, then tears part of that down again once its own networking
@@ -52,34 +38,15 @@
 # and, at least in this setup, explicitly clears its own AdvertiseRoutes
 # preference in response (confirmed via tailscaled's logs: an
 # EditPrefs{AdvertiseRoutes=[]} entry lands right as flannel's interfaces
-# disappear). Re-apply the advertisement afterwards so a k3s
-# install/restart doesn't silently take this node out of tailnet routing.
-- name: Re-apply tailscale route advertisement (k3s's CNI churn can clear it)
-  ansible.builtin.command:
-    cmd: "tailscale set --advertise-routes={{ tailscale_advertise_routes }}"
-  when: tailscale_advertise_routes is defined
-  changed_when: true
+# disappear). This checkpoint is the one most likely to catch it, since
+# flannel's interfaces have had the most time to churn by now — but it's
+# checked at every step above too, so the play output shows exactly which
+# one actually cleared it.
+- name: Tailscale route check — after k3s ready
+  ansible.builtin.include_role:
+    name: tailscale-routes-guard
+  vars:
+    checkpoint: "k3s-server: after k3s ready"
 
-- name: Create .kube directory
-  file:
-    path: "{{ ansible_env.HOME }}/.kube"
-    state: directory
-    mode: "0700"
-    owner: "{{ ansible_user }}"
-
-- name: Copy kubeconfig
-  copy:
-    src: /etc/rancher/k3s/k3s.yaml
-    dest: "{{ ansible_env.HOME }}/.kube/config"
-    remote_src: yes
-    owner: "{{ ansible_user }}"
-    mode: "0600"
-
-- name: Print join token
-  slurp:
-    src: /var/lib/rancher/k3s/server/node-token
-  register: node_token
-
-- name: Show token for agent setup
-  debug:
-    msg: "k3s token: {{ node_token.content | b64decode | trim }}"
+- import_tasks: steps/06_kubeconfig.yml
+- import_tasks: steps/07_print_token.yml

@@ -1,0 +1,14 @@
+---
+# Chains fix-tailscale-routes.sh (deployed by
+# tailscale-routes-guard/tasks/deploy_local_fix.yml) onto the uninstall
+# command itself when this host advertises a route — k3s-uninstall.sh tears
+# down flannel's CNI interfaces, which clears tailscaled's AdvertiseRoutes
+# as a side effect, and this way it's fixed the moment the uninstall script
+# exits rather than waiting on a separate Ansible task afterward.
+- name: Uninstall k3s server
+  ansible.builtin.shell: >-
+    {{ '/usr/local/bin/k3s-uninstall.sh && /usr/local/bin/fix-tailscale-routes.sh'
+       if tailscale_advertise_routes is defined
+       else '/usr/local/bin/k3s-uninstall.sh' }}
+  when: k3s_server_uninstall is defined and k3s_server_uninstall.stat.exists
+  changed_when: true

@@ -1,0 +1,18 @@
+---
+# Deploys a standalone fix-tailscale-routes.sh onto the host itself, so it
+# can be chained directly onto k3s's install/uninstall commands (e.g.
+# "k3s-uninstall.sh && /usr/local/bin/fix-tailscale-routes.sh"). This is
+# deliberately separate from tasks/main.yml's check-and-heal-via-Ansible
+# logic — that one reports state back into the play output at each
+# checkpoint; this one is a standing local safeguard that self-heals even
+# if the uninstall/install script is ever run outside of Ansible.
+#
+# No-op on any host without tailscale_advertise_routes defined.
+
+- name: "Deploy local fix-tailscale-routes.sh"
+  ansible.builtin.template:
+    src: fix-tailscale-routes.sh.j2
+    dest: /usr/local/bin/fix-tailscale-routes.sh
+    mode: "0755"
+    owner: root
+  when: tailscale_advertise_routes is defined

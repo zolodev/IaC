@@ -10,44 +10,50 @@
 #
 #   ansible-playbook playbooks/revert-k3s.yml --limit zyron
 #   ansible-playbook playbooks/revert-k3s.yml --limit zyron,nova
+#
+# Runs every step in order, unconditionally. For manual step-by-step
+# debugging where you want to comment out individual steps, use
+# playbooks/k3s-uninstall-debug.yml instead, which imports these same step
+# files (plus the tailscale-routes-guard checkpoints) one line at a time.
 
 - name: Revert k3s installation
   hosts: homelab
   become: true
   tasks:
-    - name: Check for k3s server uninstall script
-      ansible.builtin.stat:
-        path: /usr/local/bin/k3s-uninstall.sh
-      register: k3s_server_uninstall
+    - name: Tailscale route check — before uninstall
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+      vars:
+        checkpoint: "revert-k3s: before uninstall"
 
-    - name: Uninstall k3s server
-      ansible.builtin.command: /usr/local/bin/k3s-uninstall.sh
-      when: k3s_server_uninstall.stat.exists
+    - name: Deploy local tailscale-route fix script
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+        tasks_from: deploy_local_fix.yml
 
-    - name: Check for k3s agent uninstall script
-      ansible.builtin.stat:
-        path: /usr/local/bin/k3s-agent-uninstall.sh
-      register: k3s_agent_uninstall
+    - import_tasks: ../roles/k3s-uninstall/tasks/steps/01_check_server_uninstall_script.yml
+    - import_tasks: ../roles/k3s-uninstall/tasks/steps/02_uninstall_server.yml
 
-    - name: Uninstall k3s agent
-      ansible.builtin.command: /usr/local/bin/k3s-agent-uninstall.sh
-      when: k3s_agent_uninstall.stat.exists
+    - name: Tailscale route check — after server uninstall
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+      vars:
+        checkpoint: "revert-k3s: after server uninstall"
+      when: k3s_server_uninstall is defined and k3s_server_uninstall.stat.exists
 
-    - name: Remove kubeconfig
-      ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.kube/config"
-        state: absent
+    - import_tasks: ../roles/k3s-uninstall/tasks/steps/03_check_agent_uninstall_script.yml
+    - import_tasks: ../roles/k3s-uninstall/tasks/steps/04_uninstall_agent.yml
 
-    # The k3s uninstall scripts tear down flannel's CNI interfaces
-    # (cni0/flannel.1/veth*) the same way installing them does — and that
-    # interface churn is what causes tailscaled to clear its own
-    # AdvertiseRoutes preference (see roles/k3s-server/tasks/main.yml for
-    # the confirmed log evidence). Re-apply it here too so uninstalling
-    # k3s doesn't silently take this node out of tailnet routing.
-    - name: Re-apply tailscale route advertisement (k3s uninstall's CNI teardown can clear it)
-      ansible.builtin.command:
-        cmd: "tailscale set --advertise-routes={{ tailscale_advertise_routes }}"
-      when: >
-        tailscale_advertise_routes is defined and
-        (k3s_server_uninstall.stat.exists or k3s_agent_uninstall.stat.exists)
-      changed_when: true
+    - name: Tailscale route check — after agent uninstall
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+      vars:
+        checkpoint: "revert-k3s: after agent uninstall"
+      when: k3s_agent_uninstall is defined and k3s_agent_uninstall.stat.exists
+
+    - import_tasks: ../roles/k3s-uninstall/tasks/steps/05_remove_kubeconfig.yml
+
+    - name: Remove local tailscale-route fix script
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+        tasks_from: remove_local_fix.yml

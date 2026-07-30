@@ -1,0 +1,58 @@
+---
+# Debug entrypoint for k3s uninstall — the exact same steps as
+# playbooks/revert-k3s.yml (including the tailscale-routes-guard
+# checkpoints), but each imported as its own line here so you can comment
+# any of them out to skip that step while troubleshooting manually. Same
+# idea as playbooks/k3s-server-debug.yml and the roles list in main.yml.
+#
+# Usage:
+#   ansible-playbook playbooks/k3s-uninstall-debug.yml -i prod.ini --limit zyron
+#   ansible-playbook playbooks/k3s-uninstall-debug.yml -i prod.ini --limit zyron,nova
+#
+# Note: if you comment out a "Check for k3s ... uninstall script" step, the
+# matching "Uninstall k3s ..." and "Tailscale route check — after ..."
+# steps below it will just skip too (they check k3s_server_uninstall /
+# k3s_agent_uninstall is defined first) — commenting out a check step
+# doesn't break the run, it just means nothing downstream of it fires.
+
+- name: k3s uninstall — step-by-step debug
+  hosts: homelab
+  become: true
+  tasks:
+    - name: "[before uninstall] Tailscale route check"
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+      vars:
+        checkpoint: "debug: before uninstall"
+
+    - name: Deploy local tailscale-route fix script
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+        tasks_from: deploy_local_fix.yml
+
+    - import_tasks: ../roles/k3s-uninstall/tasks/steps/01_check_server_uninstall_script.yml
+    - import_tasks: ../roles/k3s-uninstall/tasks/steps/02_uninstall_server.yml
+
+    - name: "[after server uninstall] Tailscale route check"
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+      vars:
+        checkpoint: "debug: after server uninstall"
+      when: k3s_server_uninstall is defined and k3s_server_uninstall.stat.exists
+
+    - import_tasks: ../roles/k3s-uninstall/tasks/steps/03_check_agent_uninstall_script.yml
+    - import_tasks: ../roles/k3s-uninstall/tasks/steps/04_uninstall_agent.yml
+
+    - name: "[after agent uninstall] Tailscale route check"
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+      vars:
+        checkpoint: "debug: after agent uninstall"
+      when: k3s_agent_uninstall is defined and k3s_agent_uninstall.stat.exists
+
+    - import_tasks: ../roles/k3s-uninstall/tasks/steps/05_remove_kubeconfig.yml
+
+    - name: "[cleanup] Remove local tailscale-route fix script"
+      ansible.builtin.include_role:
+        name: tailscale-routes-guard
+        tasks_from: remove_local_fix.yml

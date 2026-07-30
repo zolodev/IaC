@@ -139,7 +139,7 @@ roles/
   passwordless_sudo/ configure passwordless sudo for the ansible user
   silent_motd/       quiet login message
   k3s-server/        install k3s server (Zyron, nova, core-01)
-  k3s-agent/         join k3s cluster (worker-01/02 Proxmox VMs, zyron, nova)
+  k3s-agent/         join k3s cluster (worker-01/02 Proxmox VMs — agent-only, no control plane)
   nvidia-runtime/    containerd NVIDIA runtime (Zyron)
   garage-s3/         self-hosted S3 storage (nova)
   kueue/             job queue with GPU priority tiers

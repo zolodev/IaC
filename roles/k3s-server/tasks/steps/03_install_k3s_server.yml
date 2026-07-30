@@ -8,6 +8,7 @@
       {{ '--cluster-init' if k3s_cluster_init | default(false) else '--server ' + k3s_server_url }} \
       {{ '--node-taint CriticalAddonsOnly=true:NoExecute' if k3s_control_plane_only | default(false) else '' }} \
       {{ '--node-ip=' + k3s_node_ip if k3s_node_ip is defined else '' }} \
-      {{ '--advertise-address=' + k3s_node_ip if k3s_node_ip is defined else '' }}
+      {{ '--advertise-address=' + k3s_node_ip if k3s_node_ip is defined else '' }} \
+      --tls-san={{ ansible_host }}
   args:
     creates: /usr/local/bin/k3s

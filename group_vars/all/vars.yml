@@ -12,6 +12,14 @@ k3s_token: "{{ vault_k3s_token }}"          # stored in ansible-vault
 k3s_server_ip: "{{ hostvars[groups['k3s_server_init'][0]].ansible_host }}"
 k3s_server_url: "https://{{ k3s_server_ip }}:6443"
 
+# k3s-agent hosts (worker-01/02) are plain Proxmox VMs with no Tailscale
+# client at all — they're colocated with core-01 on the same LAN and can
+# only reach it via its LAN address, never its Tailscale IP. k3s_server_url
+# above is for cross-network joins (zyron/nova); this is for LAN-local
+# agents specifically. Set via k3s_lan_ip on the k3s_server_init host.
+k3s_server_lan_ip: "{{ hostvars[groups['k3s_server_init'][0]].k3s_lan_ip }}"
+k3s_server_lan_url: "https://{{ k3s_server_lan_ip }}:6443"
+
 # ── Garage S3 ─────────────────────────────────────────────────────────────────
 garage_version: "v1.0.1"
 garage_data_dir: "/var/lib/garage"

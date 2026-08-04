@@ -74,7 +74,13 @@
       changed_when: false
       when: (groups['garage'] | length) > 1
 
-    - name: Assign zone + capacity for each node not yet in the layout
+    - name: Assign zone + capacity for each node
+      # Always (re-)assign, not just for nodes missing from the layout —
+      # this is also how you update an already-assigned node's capacity
+      # (e.g. after correcting garage_node_capacity in prod.ini). Garage
+      # treats re-assigning an unchanged zone/capacity as a harmless no-op,
+      # so this is safe to run on every invocation.
+      #
       # garage node connect completes the RPC handshake asynchronously —
       # a just-connected peer doesn't always show up in time for an
       # immediate `layout assign` ("Internal error: 0 nodes match ..."),
@@ -82,11 +88,9 @@
       ansible.builtin.command:
         cmd: >
           garage -c /etc/garage/garage.toml layout assign {{ hostvars[item].garage_node_id.split('@')[0] }}
-          -z {{ item }} -c {{ garage_node_capacity | default('100G') }}
+          -z {{ item }} -c {{ hostvars[item].garage_node_capacity | default('100G') }}
       loop: "{{ groups['garage'] }}"
-      when:
-        - (groups['garage'] | length) > 1
-        - hostvars[item].garage_node_id.split('@')[0] not in _garage_layout.stdout
+      when: (groups['garage'] | length) > 1
       register: _garage_assign
       until: _garage_assign is not failed
       retries: 5

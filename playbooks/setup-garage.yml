@@ -106,3 +106,60 @@
         - _garage_layout_apply.rc != 0
         - "'no cluster layout modifications' not in _garage_layout_apply.stderr | default('')"
       when: (groups['garage'] | length) > 1
+
+- name: Garage bucket + key provisioning
+  hosts: garage
+  run_once: true
+  tags: [garage]
+  tasks:
+    - name: Check existing Garage buckets
+      ansible.builtin.command: garage -c /etc/garage/garage.toml bucket list
+      register: _garage_buckets
+      changed_when: false
+
+    - name: Create bucket
+      ansible.builtin.command: "garage -c /etc/garage/garage.toml bucket create {{ garage_paradise_bucket }}"
+      when: garage_paradise_bucket not in _garage_buckets.stdout
+      changed_when: true
+
+    - name: Check existing Garage keys
+      ansible.builtin.command: garage -c /etc/garage/garage.toml key list
+      register: _garage_keys
+      changed_when: false
+
+    - name: Create key
+      ansible.builtin.command: "garage -c /etc/garage/garage.toml key create {{ garage_paradise_key }}"
+      when: garage_paradise_key not in _garage_keys.stdout
+      changed_when: true
+
+    - name: Grant key read/write/owner access to bucket
+      # Safe to run every time — re-granting an already-held permission is
+      # a no-op, and this also covers the case where the bucket/key already
+      # existed from a previous run but the grant itself never happened.
+      ansible.builtin.command: >
+        garage -c /etc/garage/garage.toml bucket allow
+        --read --write --owner {{ garage_paradise_bucket }} --key {{ garage_paradise_key }}
+      changed_when: true
+
+    - name: Read key credentials
+      # --show-secret works on every call, not just at creation time (unlike
+      # AWS), so this is safe to re-run and always reflects the real secret.
+      ansible.builtin.command: "garage -c /etc/garage/garage.toml key info {{ garage_paradise_key }} --show-secret"
+      register: _garage_key_info
+      changed_when: false
+
+    - name: Extract key ID and secret from key info output
+      ansible.builtin.set_fact:
+        _garage_paradise_key_id: "{{ (_garage_key_info.stdout_lines | select('match', 'Key ID:') | first).split(': ')[1] }}"
+        _garage_paradise_secret_key: "{{ (_garage_key_info.stdout_lines | select('match', 'Secret key:') | first).split(': ')[1] }}"
+
+    - name: Show paradise S3 credentials
+      ansible.builtin.debug:
+        msg: |
+          Fill these into paradise/k8s/secret.yaml:
+            S3_BUCKET: "{{ garage_paradise_bucket }}"
+            S3_PREFIX: "paradise"
+            S3_ENDPOINT_URL: "http://{{ hostvars[groups['garage'][0]].k3s_node_ip | default(hostvars[groups['garage'][0]].ansible_host) }}:3900"
+            AWS_ACCESS_KEY_ID: "{{ _garage_paradise_key_id }}"
+            AWS_SECRET_ACCESS_KEY: "{{ _garage_paradise_secret_key }}"
+            AWS_DEFAULT_REGION: "{{ garage_region }}"

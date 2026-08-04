@@ -28,7 +28,7 @@ garage_s3_bind: "0.0.0.0:3900"
 garage_region: "garage"
 # Provisioned automatically by playbooks/setup-garage.yml for the paradise
 # project's S3 sync (models_base/models_ft/data/logs) — see
-# paradise/scripts/k8s-entrypoint.sh and paradise/k8s/secret.yaml.
+# paradise/scripts/k8s-entrypoint.sh and paradise/kube/k3s/secret.yaml.
 garage_paradise_bucket: "paradise"
 garage_paradise_key: "paradise"
 

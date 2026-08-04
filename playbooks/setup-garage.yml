@@ -168,7 +168,7 @@
     - name: Show paradise S3 credentials
       ansible.builtin.debug:
         msg: |
-          Fill these into paradise/k8s/secret.yaml:
+          Fill these into paradise/kube/k3s/secret.yaml:
             S3_BUCKET: "{{ garage_paradise_bucket }}"
             S3_PREFIX: "paradise"
             S3_ENDPOINT_URL: "http://{{ hostvars[groups['garage'][0]].k3s_node_ip | default(hostvars[groups['garage'][0]].ansible_host) }}:3900"

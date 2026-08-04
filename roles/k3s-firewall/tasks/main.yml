@@ -1,0 +1,35 @@
+---
+# Only matters on hosts that already run ufw. Most nodes in this cluster
+# don't run a local firewall at all (traffic is already confined to the
+# Tailscale overlay); zyron is the one that does, for unrelated reasons
+# (ports 443/22/8080/5050 for other services), and its default-deny-incoming
+# policy silently blocks the k3s/etcd ports too, since nothing had ever
+# opened them. This role never installs or enables ufw — it only manages
+# rules on hosts where it's already active, so it's safe to run against the
+# whole cluster unconditionally.
+- name: Check whether ufw is installed
+  ansible.builtin.stat:
+    path: /usr/sbin/ufw
+  register: _ufw_bin
+
+- name: k3s inter-node firewall rules — server nodes (API server, etcd, kubelet, flannel)
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    src: "{{ k3s_firewall_src }}"
+    delete: "{{ k3s_firewall_state == 'absent' }}"
+    comment: "{{ item.comment }}"
+  loop: "{{ k3s_firewall_server_ports }}"
+  when: _ufw_bin.stat.exists and 'k3s_server' in group_names
+
+- name: k3s inter-node firewall rules — agent nodes (kubelet, flannel only)
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    src: "{{ k3s_firewall_src }}"
+    delete: "{{ k3s_firewall_state == 'absent' }}"
+    comment: "{{ item.comment }}"
+  loop: "{{ k3s_firewall_agent_ports }}"
+  when: _ufw_bin.stat.exists and 'k3s_agents' in group_names

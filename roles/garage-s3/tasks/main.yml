@@ -7,6 +7,21 @@
     home: "{{ garage_data_dir }}"
     create_home: yes
 
+- name: Ensure the Garage data dir's parent is traversable by the garage user
+  # garage_data_dir can be overridden per-host to a path outside /var/lib
+  # (e.g. zyron -> /mnt/nvme/garage). If that parent directory itself isn't
+  # world-traversable (e.g. /mnt/nvme is 0700, owned by another user), the
+  # garage service user can reach garage_data_dir by name but still gets
+  # "Permission denied" opening anything under it — traversal permission is
+  # checked on every path component, not just the final directory. Grant
+  # execute-only (traverse, not list/read) on the parent; contents keep
+  # whatever perms they already have.
+  ansible.builtin.file:
+    path: "{{ garage_data_dir | dirname }}"
+    state: directory
+    mode: "o+x"
+  when: (garage_data_dir | dirname) not in ['/', '/var', '/var/lib']
+
 - name: Create garage directories
   file:
     path: "{{ item }}"
@@ -66,3 +81,21 @@
     state: started
     enabled: yes
     daemon_reload: yes
+
+- name: Wait for Garage RPC to accept connections
+  wait_for:
+    host: 127.0.0.1
+    port: "{{ garage_rpc_bind.split(':')[-1] }}"
+    timeout: 30
+
+- name: Read this node's Garage node ID
+  command: garage node id -q
+  register: _garage_node_id_raw
+  changed_when: false
+  retries: 5
+  delay: 3
+  until: _garage_node_id_raw.rc == 0
+
+- name: Expose the node ID as a fact for the cluster-bootstrap play
+  set_fact:
+    garage_node_id: "{{ _garage_node_id_raw.stdout | trim }}"

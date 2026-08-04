@@ -1,7 +1,12 @@
 ---
+# node-token lives under the server's data dir — /var/lib/rancher/k3s by
+# default, but overridden per-host for some nodes (e.g. zyron ->
+# /mnt/nvme/k3s, see prod.ini). Hardcoding the default path here fails
+# with "file not found" on any host using a custom k3s_data_dir, same class
+# of bug as the uninstall step (see roles/k3s-uninstall's fix).
 - name: Print join token
   slurp:
-    src: /var/lib/rancher/k3s/server/node-token
+    src: "{{ (k3s_data_dir | default('/var/lib/rancher/k3s')) + '/server/node-token' }}"
   register: node_token
 
 - name: Show token for agent setup

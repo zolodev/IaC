@@ -27,6 +27,19 @@ garage_rpc_bind: "0.0.0.0:3901"
 garage_s3_bind: "0.0.0.0:3900"
 garage_region: "garage"
 
+# ── k3s inter-node firewall ──────────────────────────────────────────────────
+# See playbooks/k3s-firewall.yml. Only affects hosts that already run ufw.
+k3s_firewall_state: "present"        # or "absent" via -e to remove the rules
+k3s_firewall_src:   "100.64.0.0/10"  # Tailscale CGNAT range — all cluster nodes live here
+k3s_firewall_server_ports:
+  - { port: "6443",      proto: tcp, comment: "k3s API server" }
+  - { port: "2379:2380", proto: tcp, comment: "etcd client+peer" }
+  - { port: "10250",     proto: tcp, comment: "kubelet" }
+  - { port: "8472",      proto: udp, comment: "flannel VXLAN" }
+k3s_firewall_agent_ports:
+  - { port: "10250", proto: tcp, comment: "kubelet" }
+  - { port: "8472",  proto: udp, comment: "flannel VXLAN" }
+
 # ── Kueue ─────────────────────────────────────────────────────────────────────
 kueue_version: "0.9.1"
 

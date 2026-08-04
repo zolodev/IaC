@@ -27,6 +27,8 @@ usage() {
     echo "  uninstall-k3s  Cleanly remove k3s server/agent (use --limit to target a node)"
     echo "  kueue      Install Kueue (GPU-priority job queue) on k3s server nodes"
     echo "  headlamp   Install Headlamp (Kubernetes dashboard) on k3s server nodes"
+    echo "  k3s-firewall  Open the ufw ports k3s needs between cluster nodes"
+    echo "                (add -e k3s_firewall_state=absent to remove them)"
     echo ""
     echo "Multiple commands run their playbooks in sequence, each as its own"
     echo "ansible-playbook invocation — nothing is combined via ansible tags."
@@ -62,6 +64,7 @@ playbook_file() {
         uninstall-k3s) echo "playbooks/revert-k3s.yml" ;;
         kueue)         echo "playbooks/kueue.yml" ;;
         headlamp)      echo "playbooks/headlamp.yml" ;;
+        k3s-firewall)  echo "playbooks/k3s-firewall.yml" ;;
         *)             return 1 ;;
     esac
 }
@@ -101,7 +104,12 @@ if [[ "$1" == "prep" ]]; then
         # ── 4. Create vault.yml from example if missing ───────────────────────
         if [ ! -f "$VAULT_FILE" ]; then
             # Exclude \ from generated secrets — TOML double-quoted strings treat it as escape
-            GARAGE_RPC=$(set +o pipefail; cat /dev/urandom | tr -dc 'a-zA-Z0-9!#$%&()*+,-./:<=>?@[]^_{}~' | head -c 50)
+            # Garage's rpc_secret specifically must be 32 bytes of entropy
+            # hex-encoded (64 hex chars) — it rejects anything else at
+            # startup with "Invalid RPC secret key: expected 32 bits of
+            # entropy". The generic mixed-symbol generator used below for
+            # the other secrets doesn't satisfy that format.
+            GARAGE_RPC=$(openssl rand -hex 32)
             K3S_TOKEN=$(set +o pipefail; cat /dev/urandom | tr -dc 'a-zA-Z0-9!#$%&()*+,-./:<=>?@[]^_{}~' | head -c 50)
             cp "$PWD/group_vars/vault.example.yml" "$VAULT_FILE"
             chmod 600 "$VAULT_FILE"

@@ -5,10 +5,23 @@
 # down flannel's CNI interfaces, which clears tailscaled's AdvertiseRoutes
 # as a side effect, and this way it's fixed the moment the uninstall script
 # exits rather than waiting on a separate Ansible task afterward.
+#
+# k3s-uninstall.sh reads its data directory from the K3S_DATA_DIR env var,
+# falling back to /var/lib/rancher/k3s if unset — it does NOT introspect
+# the actual running install to find a custom --data-dir. Hosts with a
+# k3s_data_dir override (e.g. zyron -> /mnt/nvme/k3s) would otherwise have
+# the uninstall silently clean the wrong (default, unused) path and leave
+# the real etcd data — including its old member identity and CA cert —
+# behind untouched. A later reinstall then reuses that stale state and
+# fails to (re)join the cluster, hanging forever since k3s's systemd unit
+# has no start timeout. Must pass the same data dir the host was actually
+# installed with.
 - name: Uninstall k3s server
   ansible.builtin.shell: >-
-    {{ '/usr/local/bin/k3s-uninstall.sh && /usr/local/bin/fix-tailscale-routes.sh'
+    {{ 'K3S_DATA_DIR=' + _k3s_uninstall_data_dir + ' /usr/local/bin/k3s-uninstall.sh && /usr/local/bin/fix-tailscale-routes.sh'
        if tailscale_advertise_routes is defined
-       else '/usr/local/bin/k3s-uninstall.sh' }}
+       else 'K3S_DATA_DIR=' + _k3s_uninstall_data_dir + ' /usr/local/bin/k3s-uninstall.sh' }}
+  vars:
+    _k3s_uninstall_data_dir: "{{ k3s_data_dir | default('/var/lib/rancher/k3s') }}"
   when: k3s_server_uninstall is defined and k3s_server_uninstall.stat.exists
   changed_when: true

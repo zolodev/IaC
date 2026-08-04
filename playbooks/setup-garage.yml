@@ -1,5 +1,5 @@
 ---
-# Set up the Garage S3 node: k3s agent + Garage S3
+# Set up the Garage S3 node(s).
 #   ansible-playbook playbooks/setup-garage.yml
 
 - name: Base configuration
@@ -16,8 +16,63 @@
     - role: garage-s3
   tags: [garage]
 
-- name: k3s agent
+# k3s-agent is intentionally NOT applied here. It used to run
+# unconditionally against every [garage] host, but every [garage] host in
+# this inventory (zyron, nova) is already a full k3s_server — a k3s server
+# already runs an embedded kubelet and is schedulable on its own, so
+# additionally installing k3s-agent on it hits the exact same bug already
+# fixed for the [k3s_agents] group: the agent install no-ops (k3s binary
+# already present from the server install), so the k3s-agent systemd unit
+# never actually gets created, and the next task fails with "Could not
+# find the requested service k3s-agent". If a future [garage] host is ever
+# added that ISN'T also a k3s_server, add k3s-agent back scoped to
+# "garage:!k3s_server" specifically, not unconditionally.
+
+- name: Garage cluster bootstrap (connect nodes + assign layout)
   hosts: garage
-  roles:
-    - role: k3s-agent
-  tags: [k3s]
+  run_once: true
+  tags: [garage]
+  tasks:
+    - name: Skip — only one Garage node, no cluster to bootstrap
+      debug:
+        msg: "Single-node Garage (only {{ groups['garage'] | join(', ') }}) — replication_factor should be 1, nothing to connect."
+      when: (groups['garage'] | length) < 2
+
+    - name: Connect every Garage node to every other node
+      ansible.builtin.command:
+        cmd: "garage node connect {{ hostvars[item].garage_node_id }}"
+      loop: "{{ groups['garage'] }}"
+      when:
+        - (groups['garage'] | length) > 1
+        - item != inventory_hostname
+      changed_when: true
+      failed_when: false  # non-zero if already connected — harmless
+
+    - name: Read current layout
+      ansible.builtin.command: garage layout show
+      register: _garage_layout
+      changed_when: false
+      when: (groups['garage'] | length) > 1
+
+    - name: Assign zone + capacity for each node not yet in the layout
+      ansible.builtin.command:
+        cmd: >
+          garage layout assign {{ hostvars[item].garage_node_id.split('@')[0] }}
+          -z {{ item }} -c {{ garage_node_capacity | default('100G') }}
+      loop: "{{ groups['garage'] }}"
+      when:
+        - (groups['garage'] | length) > 1
+        - hostvars[item].garage_node_id.split('@')[0] not in _garage_layout.stdout
+      changed_when: true
+
+    - name: Apply the staged layout
+      ansible.builtin.shell: |
+        set -euo pipefail
+        CURRENT=$(garage layout show | grep -oP 'Current cluster layout version: \K\d+' || echo 0)
+        garage layout apply --version $((CURRENT + 1))
+      register: _garage_layout_apply
+      changed_when: "'Layout with version' in _garage_layout_apply.stdout"
+      failed_when:
+        - _garage_layout_apply.rc != 0
+        - "'no cluster layout modifications' not in _garage_layout_apply.stderr | default('')"
+      when: (groups['garage'] | length) > 1

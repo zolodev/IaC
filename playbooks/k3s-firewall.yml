@@ -1,0 +1,14 @@
+---
+# Opens (or removes) the UFW ports k3s's embedded-etcd HA control plane
+# needs between cluster nodes — 6443 (API server), 2379-2380 (etcd),
+# 10250 (kubelet), 8472/udp (flannel VXLAN). Scoped to the Tailscale
+# subnet only (k3s_firewall_src), never "Anywhere". No-ops on any host
+# that doesn't already run ufw.
+#
+#   ./run.sh k3s-firewall                                # add the rules
+#   ./run.sh k3s-firewall -e k3s_firewall_state=absent   # remove them
+
+- name: k3s inter-node firewall rules
+  hosts: k3s_server:k3s_agents
+  roles:
+    - role: k3s-firewall

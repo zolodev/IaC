@@ -2,7 +2,9 @@ metadata_dir = "{{ garage_data_dir }}/meta"
 data_dir     = "{{ garage_data_dir }}/data"
 db_engine    = "lmdb"
 
-replication_factor = 1
+# Auto-derived from the [garage] inventory group so this always matches the
+# real cluster size — 1 for a lone node, 2 once zyron+nova both run Garage.
+replication_factor = {{ groups['garage'] | length }}
 
 rpc_bind_addr    = "{{ garage_rpc_bind }}"
 rpc_public_addr  = "{{ ansible_default_ipv4.address }}:3901"

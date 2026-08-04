@@ -22,6 +22,7 @@ usage() {
     echo "  prep --reset      Regenerate vault.yml and .vault_pass (new secrets)"
     echo "  homelab    Full home lab setup (packages, k3s)"
     echo "  garage     Set up the Garage S3 node"
+    echo "  uninstall-garage  Cleanly remove Garage (use --limit to target a node)"
     echo "  apt        Refresh apt cache on all nodes (--tags upgrade to also upgrade)"
     echo "  timezone   Set timezone on all nodes (run separately, can reboot)"
     echo "  uninstall-k3s  Cleanly remove k3s server/agent (use --limit to target a node)"
@@ -59,6 +60,7 @@ playbook_file() {
     case "$1" in
         homelab)       echo "playbooks/setup-homelab.yml" ;;
         garage)        echo "playbooks/setup-garage.yml" ;;
+        uninstall-garage) echo "playbooks/uninstall-garage.yml" ;;
         apt)           echo "playbooks/apt.yml" ;;
         timezone)      echo "playbooks/timezone.yml" ;;
         uninstall-k3s) echo "playbooks/revert-k3s.yml" ;;

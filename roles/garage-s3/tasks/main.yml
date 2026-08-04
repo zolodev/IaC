@@ -7,6 +7,25 @@
     home: "{{ garage_data_dir }}"
     create_home: yes
 
+- name: Check whether ufw is installed
+  ansible.builtin.stat:
+    path: /usr/sbin/ufw
+  register: _ufw_bin
+
+- name: Allow Garage RPC + S3 API ports through ufw (only on hosts that already run it)
+  # Same class of gap as k3s's ports (see roles/k3s-firewall): a host with
+  # an unrelated pre-existing ufw config silently blocks Garage's inter-
+  # node RPC (3901) and S3 API (3900) with no error beyond a timeout when
+  # another node tries to connect. Never installs/enables ufw itself.
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    src: "{{ k3s_firewall_src | default('100.64.0.0/10') }}"
+    comment: "Garage"
+  loop: ["3900", "3901"]
+  when: _ufw_bin.stat.exists
+
 - name: Ensure the Garage data dir's parent is traversable by the garage user
   # garage_data_dir can be overridden per-host to a path outside /var/lib
   # (e.g. zyron -> /mnt/nvme/garage). If that parent directory itself isn't
@@ -89,7 +108,12 @@
     timeout: 30
 
 - name: Read this node's Garage node ID
-  command: garage node id -q
+  # garage's default config search path is /etc/garage.toml — this role
+  # writes it to /etc/garage/garage.toml instead (matching the systemd
+  # unit's own explicit -c flag), so every bare `garage` CLI invocation
+  # needs -c too or it fails with "Unable to read configuration file
+  # /etc/garage.toml: No such file or directory".
+  command: garage -c /etc/garage/garage.toml node id -q
   register: _garage_node_id_raw
   changed_when: false
   retries: 5

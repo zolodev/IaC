@@ -7,7 +7,13 @@ db_engine    = "lmdb"
 replication_factor = {{ groups['garage'] | length }}
 
 rpc_bind_addr    = "{{ garage_rpc_bind }}"
-rpc_public_addr  = "{{ ansible_default_ipv4.address }}:3901"
+# ansible_default_ipv4.address is the wrong choice here — it's whatever
+# interface holds the default route, which for a home LAN box (zyron) is
+# its LAN IP and for a remote VPS (nova) is its *public internet* IP.
+# Neither is reachable from the other node directly. k3s_node_ip is each
+# host's Tailscale overlay address, already the proven-working address
+# space for cross-node traffic between exactly these hosts (see prod.ini).
+rpc_public_addr  = "{{ k3s_node_ip | default(ansible_host) }}:3901"
 rpc_secret       = "{{ vault_garage_rpc_secret }}"
 
 [s3_api]

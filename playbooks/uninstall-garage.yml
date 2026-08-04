@@ -1,0 +1,16 @@
+---
+# Cleanly removes Garage (service, binary, config, local data, user) from
+# one or all [garage] nodes.
+#
+#   ./run.sh uninstall-garage --limit nova
+#   ./run.sh uninstall-garage                # all [garage] hosts
+#
+# Only tears down the local install on the targeted host(s) — see
+# roles/garage-uninstall/tasks/main.yml for the multi-node layout caveat
+# when removing a single node out of a still-running cluster.
+
+- name: Uninstall Garage
+  hosts: garage
+  become: true
+  roles:
+    - role: garage-uninstall

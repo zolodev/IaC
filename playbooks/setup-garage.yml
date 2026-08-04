@@ -38,9 +38,29 @@
         msg: "Single-node Garage (only {{ groups['garage'] | join(', ') }}) — replication_factor should be 1, nothing to connect."
       when: (groups['garage'] | length) < 2
 
+    - name: Wait for every Garage node's RPC port to accept connections
+      # garage-s3's "Write Garage config" task restarts the service via a
+      # handler that fires at the END of that play, on every host at once
+      # — this play starts right after with no synchronization point, so
+      # the (possibly still-restarting) daemons aren't guaranteed to have
+      # re-bound their RPC port yet. Since this whole play only actually
+      # executes on one host (run_once), check every group member's port
+      # from that host's perspective before trying to connect to any of
+      # them.
+      ansible.builtin.wait_for:
+        host: "{{ hostvars[item].k3s_node_ip | default(hostvars[item].ansible_host) }}"
+        port: 3901
+        timeout: 30
+      loop: "{{ groups['garage'] }}"
+      when: (groups['garage'] | length) > 1
+
+    # garage's default config search path is /etc/garage.toml — the
+    # garage-s3 role writes it to /etc/garage/garage.toml instead (matching
+    # the systemd unit's own explicit -c flag), so every bare `garage` CLI
+    # call below needs its own -c too, positioned before the subcommand.
     - name: Connect every Garage node to every other node
       ansible.builtin.command:
-        cmd: "garage node connect {{ hostvars[item].garage_node_id }}"
+        cmd: "garage -c /etc/garage/garage.toml node connect {{ hostvars[item].garage_node_id }}"
       loop: "{{ groups['garage'] }}"
       when:
         - (groups['garage'] | length) > 1
@@ -49,27 +69,37 @@
       failed_when: false  # non-zero if already connected — harmless
 
     - name: Read current layout
-      ansible.builtin.command: garage layout show
+      ansible.builtin.command: garage -c /etc/garage/garage.toml layout show
       register: _garage_layout
       changed_when: false
       when: (groups['garage'] | length) > 1
 
     - name: Assign zone + capacity for each node not yet in the layout
+      # garage node connect completes the RPC handshake asynchronously —
+      # a just-connected peer doesn't always show up in time for an
+      # immediate `layout assign` ("Internal error: 0 nodes match ..."),
+      # so retry rather than treat that as fatal.
       ansible.builtin.command:
         cmd: >
-          garage layout assign {{ hostvars[item].garage_node_id.split('@')[0] }}
+          garage -c /etc/garage/garage.toml layout assign {{ hostvars[item].garage_node_id.split('@')[0] }}
           -z {{ item }} -c {{ garage_node_capacity | default('100G') }}
       loop: "{{ groups['garage'] }}"
       when:
         - (groups['garage'] | length) > 1
         - hostvars[item].garage_node_id.split('@')[0] not in _garage_layout.stdout
+      register: _garage_assign
+      until: _garage_assign is not failed
+      retries: 5
+      delay: 3
       changed_when: true
 
     - name: Apply the staged layout
       ansible.builtin.shell: |
         set -euo pipefail
-        CURRENT=$(garage layout show | grep -oP 'Current cluster layout version: \K\d+' || echo 0)
-        garage layout apply --version $((CURRENT + 1))
+        CURRENT=$(garage -c /etc/garage/garage.toml layout show | grep -oP 'Current cluster layout version: \K\d+' || echo 0)
+        garage -c /etc/garage/garage.toml layout apply --version $((CURRENT + 1))
+      args:
+        executable: /bin/bash
       register: _garage_layout_apply
       changed_when: "'Layout with version' in _garage_layout_apply.stdout"
       failed_when:

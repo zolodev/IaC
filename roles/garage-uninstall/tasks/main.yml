@@ -1,0 +1,58 @@
+---
+# Removes everything roles/garage-s3 installed on this host: the systemd
+# service, binary, config, local data, and the dedicated garage user.
+# Safe to run even if Garage was never installed here.
+#
+# Multi-node caveat: this only tears down the LOCAL install. If other hosts
+# remain in [garage] after this one is removed, they'll keep believing this
+# node is still a cluster member holding data until you also evict it from
+# the layout — from a SURVIVING node, before or after running this:
+#   garage -c /etc/garage/garage.toml layout assign <node_id> -z <zone> -c 0
+#   garage -c /etc/garage/garage.toml layout apply --version <N+1>
+# (<node_id> is the short ID shown by `garage status` on the surviving node.)
+
+- name: Check whether Garage is installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/garage
+  register: _garage_bin
+
+- name: Stop and disable Garage service
+  ansible.builtin.systemd:
+    name: garage
+    state: stopped
+    enabled: false
+  failed_when: false
+  when: _garage_bin.stat.exists
+
+- name: Remove Garage systemd unit
+  ansible.builtin.file:
+    path: /etc/systemd/system/garage.service
+    state: absent
+  register: _garage_unit_removed
+
+- name: Reload systemd after unit removal
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: _garage_unit_removed.changed
+
+- name: Remove Garage binary
+  ansible.builtin.file:
+    path: /usr/local/bin/garage
+    state: absent
+
+- name: Remove Garage config
+  ansible.builtin.file:
+    path: /etc/garage
+    state: absent
+
+- name: Remove Garage data directory
+  ansible.builtin.file:
+    path: "{{ garage_data_dir }}"
+    state: absent
+
+- name: Remove garage system user
+  ansible.builtin.user:
+    name: garage
+    state: absent
+    remove: true
+  failed_when: false

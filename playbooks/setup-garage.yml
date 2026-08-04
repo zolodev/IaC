@@ -126,6 +126,14 @@
       when: garage_paradise_bucket not in _garage_buckets.stdout
       changed_when: true
 
+    - name: Enable website access on bucket
+      # Not Garage's own default (buckets start with website access: false)
+      # — explicitly turned on here so it's true by default for every
+      # bucket this playbook provisions. Safe to re-run: re-allowing an
+      # already-enabled bucket is a no-op.
+      ansible.builtin.command: "garage -c /etc/garage/garage.toml bucket website --allow {{ garage_paradise_bucket }}"
+      changed_when: true
+
     - name: Check existing Garage keys
       ansible.builtin.command: garage -c /etc/garage/garage.toml key list
       register: _garage_keys

@@ -31,6 +31,10 @@ garage_region: "garage"
 # paradise/scripts/k8s-entrypoint.sh and paradise/kube/k3s/secret.yaml.
 garage_paradise_bucket: "paradise"
 garage_paradise_key: "paradise"
+# k3s's default flannel pod CIDR (--cluster-cidr) — pods talk to Garage's
+# S3 API from this range, not from a Tailscale address. See the ufw task
+# in roles/garage-s3/tasks/main.yml for why that distinction matters.
+k3s_pod_cidr: "10.42.0.0/16"
 
 # ── k3s inter-node firewall ──────────────────────────────────────────────────
 # See playbooks/k3s-firewall.yml. Only affects hosts that already run ufw.

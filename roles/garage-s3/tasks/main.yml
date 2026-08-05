@@ -12,7 +12,7 @@
     path: /usr/sbin/ufw
   register: _ufw_bin
 
-- name: Allow Garage RPC + S3 API ports through ufw (only on hosts that already run it)
+- name: Allow Garage RPC + S3 API ports through ufw for other Garage nodes (Tailscale)
   # Same class of gap as k3s's ports (see roles/k3s-firewall): a host with
   # an unrelated pre-existing ufw config silently blocks Garage's inter-
   # node RPC (3901) and S3 API (3900) with no error beyond a timeout when
@@ -22,8 +22,24 @@
     port: "{{ item }}"
     proto: tcp
     src: "{{ k3s_firewall_src | default('100.64.0.0/10') }}"
-    comment: "Garage"
+    comment: "Garage — node-to-node (Tailscale)"
   loop: ["3900", "3901"]
+  when: _ufw_bin.stat.exists
+
+- name: Allow Garage S3 API from k3s pods (pod CIDR, not the Tailscale range)
+  # Pods calling the S3 API (k8s-entrypoint.sh's aws s3 sync) present their
+  # own CNI pod IP (flannel's 10.42.0.0/16 by default), not a Tailscale
+  # address — flannel doesn't masquerade pod-to-host-local traffic through
+  # the Tailscale interface. Confirmed via a real UFW BLOCK log entry:
+  # SRC=10.42.1.9 (a pod IP) DST=<this host's Tailscale IP> DPT=3900.
+  # RPC (3901) is node-to-node only, pods never call it directly, so this
+  # is scoped to just the S3 API port.
+  community.general.ufw:
+    rule: allow
+    port: "3900"
+    proto: tcp
+    src: "{{ k3s_pod_cidr | default('10.42.0.0/16') }}"
+    comment: "Garage S3 API — k3s pods"
   when: _ufw_bin.stat.exists
 
 - name: Ensure the Garage data dir's parent is traversable by the garage user

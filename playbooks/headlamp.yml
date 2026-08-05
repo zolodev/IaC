@@ -8,5 +8,12 @@
 
 - name: Headlamp
   hosts: k3s_server
+  # Headlamp is one cluster-wide Helm release, not a per-node install — all
+  # k3s_server hosts point at the SAME cluster API server, so without
+  # run_once every host raced to `helm install` the same release
+  # simultaneously. Whichever host won printed real success; the others
+  # failed with "Error: release: already exists", a false failure caused
+  # by the race, not a real problem with the deploy itself.
+  run_once: true
   roles:
     - role: headlamp

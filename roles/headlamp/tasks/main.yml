@@ -7,7 +7,13 @@
     creates: /usr/local/bin/helm
 
 - name: Add Headlamp Helm repository
-  shell: helm repo add headlamp https://headlamp-k8s.github.io/headlamp/
+  # Moved when the project moved from Kinvolk to Kubernetes SIGs — the old
+  # headlamp-k8s.github.io URL now 404s. No --version pin below on the
+  # helm upgrade --install, and "helm repo update" runs every time, so this
+  # always installs whatever the latest chart in the repo index is —
+  # tracks the project's GitHub releases in practice without needing to
+  # query the GitHub API directly.
+  shell: helm repo add headlamp https://kubernetes-sigs.github.io/headlamp/
   register: repo_add
   changed_when: "'already exists' not in repo_add.stdout"
   environment:
@@ -37,7 +43,8 @@
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
 # Create a ServiceAccount so you can log in to Headlamp with a token.
-# kubectl create token headlamp-admin -n headlamp  →  paste in the browser.
+# kubectl create token headlamp-admin -n headlamp --duration=24h  →  paste in the browser.
+# (kubectl's own default is 1h — --duration=24h avoids re-generating it constantly.)
 - name: Create Headlamp admin ServiceAccount
   shell: |
     kubectl apply -f - <<EOF
@@ -68,5 +75,5 @@
     msg:
       - "Headlamp is available at http://{{ ansible_host }}:{{ headlamp_nodeport }}"
       - "Generate a login token:"
-      - "  kubectl create token headlamp-admin -n headlamp"
+      - "  kubectl create token headlamp-admin -n headlamp --duration=24h"
       - "Paste the token in the Headlamp login screen."

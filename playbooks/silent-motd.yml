@@ -1,0 +1,18 @@
+---
+# Silence the login banner (MOTD) for specific_user by dropping a
+# ~/.hushlogin in their home directory.
+#
+#   ansible-playbook playbooks/silent-motd.yml
+#   ansible-playbook playbooks/silent-motd.yml --limit zyron
+#
+# Split out of setup-homelab.yml: the role becomes specific_user to touch
+# that user's home directory, so it only works on hosts where the account
+# actually exists. On a freshly provisioned machine that still only has
+# root, it fails with "sudo: user '<name>' not found" and takes the whole
+# base play down with it — for something purely cosmetic. Running it
+# separately, once a host has its real user account, avoids that.
+
+- name: Silence login MOTD
+  hosts: homelab:ubuntu
+  roles:
+    - role: silent_motd

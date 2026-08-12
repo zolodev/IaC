@@ -12,8 +12,14 @@
     # - role: base_packages
     - role: passwordless_sudo
     - role: auto_update
-    - role: silent_motd
   tags: [base]
+
+# silent_motd deliberately isn't here — it operates on specific_user's home
+# directory, which assumes that account already exists on the host. That's
+# true for the established home lab nodes but not for freshly provisioned
+# machines that only have root, where it fails the whole base play. It's
+# cosmetic, so it lives in its own playbook to run when you actually want
+# it: ./run.sh silent-motd
 
 # - name: Update and upgrade APT packages
 #   hosts: homelab

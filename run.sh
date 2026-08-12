@@ -7,6 +7,7 @@
 #   ./run.sh garage             # set up the Garage S3 node
 #   ./run.sh apt                # refresh apt cache on all nodes (add --tags upgrade to upgrade)
 #   ./run.sh timezone          # set timezone (run separately, can reboot)
+#   ./run.sh silent-motd       # silence login MOTD for specific_user
 #   ./run.sh uninstall-k3s     # cleanly remove k3s (server and/or agent)
 #   ./run.sh homelab apt       # run multiple playbooks in sequence
 #   ./run.sh --help            # show this help
@@ -25,6 +26,7 @@ usage() {
     echo "  uninstall-garage  Cleanly remove Garage (use --limit to target a node)"
     echo "  apt        Refresh apt cache on all nodes (--tags upgrade to also upgrade)"
     echo "  timezone   Set timezone on all nodes (run separately, can reboot)"
+    echo "  silent-motd  Silence the login MOTD (needs specific_user to exist)"
     echo "  uninstall-k3s  Cleanly remove k3s server/agent (use --limit to target a node)"
     echo "  kueue      Install Kueue (GPU-priority job queue) on k3s server nodes"
     echo "  headlamp   Install Headlamp (Kubernetes dashboard) on k3s server nodes"
@@ -63,6 +65,7 @@ playbook_file() {
         uninstall-garage) echo "playbooks/uninstall-garage.yml" ;;
         apt)           echo "playbooks/apt.yml" ;;
         timezone)      echo "playbooks/timezone.yml" ;;
+        silent-motd)   echo "playbooks/silent-motd.yml" ;;
         uninstall-k3s) echo "playbooks/revert-k3s.yml" ;;
         kueue)         echo "playbooks/kueue.yml" ;;
         headlamp)      echo "playbooks/headlamp.yml" ;;

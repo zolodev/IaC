@@ -58,4 +58,12 @@ headlamp_nodeport: 30800
 
 # ── Common ────────────────────────────────────────────────────────────────────
 timezone: "Europe/Stockholm"
-specific_user: "zolo"
+# The unprivileged account roles like silent_motd/base_packages/dotfiles
+# operate on (become_user). Derived from whoever the inventory connects as
+# rather than hardcoded, so it's correct on any host without needing a
+# per-group override: homelab nodes set ansible_user=zolo and keep their
+# existing behaviour, while hosts connecting as root (e.g. fresh cloud VMs
+# with no other account yet) resolve to root instead of failing with
+# "sudo: user 'zolo' not found". Still overridable per host or group in the
+# inventory when a host connects as one user but should act as another.
+specific_user: "{{ ansible_user | default('root') }}"

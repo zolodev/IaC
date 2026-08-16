@@ -12,6 +12,7 @@
   vars:
     checkpoint: "k3s-server: before install"
 
+- import_tasks: steps/00_assert_node_ip.yml
 - import_tasks: steps/01_download_install_script.yml
 - import_tasks: steps/02_wait_for_initial_server.yml
 - import_tasks: steps/03_install_k3s_server.yml

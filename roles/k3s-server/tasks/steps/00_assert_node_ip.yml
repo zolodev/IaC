@@ -1,0 +1,29 @@
+---
+# k3s picks a node IP by itself when not told, and it picks from the default
+# route. That is wrong for every node here: this cluster peers over Tailscale,
+# while the default route is a LAN or public interface. A server that comes up
+# on the wrong address registers its etcd peer URL as something the other
+# members cannot reach, joins nothing, and sits NotReady — while looking
+# healthy from its own console.
+#
+# That is not hypothetical. core-01 was provisioned without k3s_node_ip,
+# advertised its LAN address 192.168.50.211, and its etcd was unreachable from
+# the two nodes that peer over Tailscale. Recovering it meant deleting the
+# node, wiping its etcd datastore and rejoining — the address cannot be
+# corrected in place, because the peer URL is already recorded in the member
+# list.
+#
+# So require it rather than defaulting. An install that stops here costs a
+# minute; one that succeeds against the wrong interface costs an evening.
+- name: Require an explicit node IP for this server
+  ansible.builtin.assert:
+    that:
+      - k3s_node_ip is defined
+      - k3s_node_ip | length > 0
+    fail_msg: >-
+      {{ inventory_hostname }} has no k3s_node_ip. Set it in the inventory to
+      this host's Tailscale address, the one the other cluster members reach
+      it on — not its LAN address, and not necessarily ansible_host.
+      Without it k3s auto-detects from the default route and the node will
+      join with an address its peers cannot reach.
+    success_msg: "node IP: {{ k3s_node_ip }}"

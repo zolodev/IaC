@@ -1,4 +1,16 @@
 ---
+# --cluster-init is a one-time flag, but it lands permanently in the generated
+# systemd unit — and `creates:` below means this task never runs again on a
+# host that already has k3s, so the flag is never revisited.
+#
+# That combination is a trap on any later rebuild. Wipe an init node's etcd
+# datastore and restart it with --cluster-init still in its unit and it does
+# not rejoin the cluster: it bootstraps a fresh single-member one, leaving two
+# etcd clusters that both believe they are authoritative. Recovering means
+# removing the flag by hand before starting the service.
+#
+# When rebuilding an init node against a cluster that already exists, set
+# k3s_cluster_init=false for it and let it join like any other server.
 - name: Install k3s server
   shell: |
     INSTALL_K3S_VERSION="{{ k3s_version }}" \

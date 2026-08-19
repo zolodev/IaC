@@ -10,6 +10,7 @@
 #   ./run.sh silent-motd       # silence login MOTD for specific_user
 #   ./run.sh uninstall-k3s     # cleanly remove k3s (server and/or agent)
 #   ./run.sh homelab apt       # run multiple playbooks in sequence
+#   ./run.sh edit-vault        # open the encrypted vault in $EDITOR
 #   ./run.sh --help            # show this help
 
 set -euo pipefail
@@ -21,6 +22,7 @@ usage() {
     echo "Commands:"
     echo "  prep              Install Ansible and create vault.yml + prod.ini (run first)"
     echo "  prep --reset      Regenerate vault.yml and .vault_pass (new secrets)"
+    echo "  edit-vault        Edit the encrypted vault in ${EDITOR:-nano} (decrypt, edit, re-encrypt)"
     echo "  homelab    Full home lab setup (packages, k3s)"
     echo "  garage     Set up the Garage S3 node"
     echo "  uninstall-garage  Cleanly remove Garage (use --limit to target a node)"
@@ -161,6 +163,30 @@ PYEOF
 
         echo "Setup complete. Run: ./run.sh homelab"
         exit 0
+fi
+
+# ── edit-vault: decrypt into $EDITOR, re-encrypt on save ──────────────────
+# ansible-vault edit rather than decrypt/edit/encrypt by hand: it works on a
+# temp file it shreds afterwards, so plaintext never touches the repo, and a
+# non-zero exit from the editor leaves the original untouched.
+#
+# The vault password comes from ansible.cfg's vault_password_file, which
+# ANSIBLE_CONFIG above points at — no --vault-password-file needed here.
+#
+# $VAULT_FILE may be a symlink pointing outside the repo, which is one way to
+# keep the ciphertext out of a parent project's Docker build context.
+# ansible-vault writes through the link and the link survives — verified, not
+# assumed, since it removes and recreates the file internally.
+if [[ "$1" == "edit-vault" ]]; then
+    if [ ! -f "$VAULT_FILE" ]; then
+        echo "Error: $VAULT_FILE not found."
+        echo "Run './run.sh prep' first."
+        exit 1
+    fi
+    echo "Opening $VAULT_FILE in ${EDITOR:-nano} — save and close to re-encrypt."
+    EDITOR="${EDITOR:-nano}" ansible-vault edit "$VAULT_FILE"
+    echo "  ✓ vault.yml re-encrypted"
+    exit 0
 fi
 
 # ── Guard: require vault.yml and prod.ini ─────────────────────────────────
